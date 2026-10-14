@@ -87,20 +87,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const quickLoginAsRole = async (targetRole: string): Promise<boolean> => {
-    const roleEmailMap: Record<string, string> = {
-      VOLUNTEER: 'volunteer@jeevikasetu.gov.in',
-      BDO: 'bdo.nirmali@jeevikasetu.gov.in',
-      DDC: 'ddc.supaul@jeevikasetu.gov.in',
-      DPO: 'dpo.jeevika@jeevikasetu.gov.in',
-      SDM: 'sdm.nirmali@jeevikasetu.gov.in',
-      ADM: 'adm.relief@jeevikasetu.gov.in',
-      DM: 'dm.supaul@jeevikasetu.gov.in',
-      SYSTEM_ADMIN: 'admin@jeevikasetu.gov.in',
-    };
+  const quickLoginAsRole = async (targetRole: string, targetDistrict?: string): Promise<boolean> => {
+    let target = demoUsers.find((u) => {
+      if (targetDistrict && u.jurisdictionName !== targetDistrict) return false;
+      return u.role === targetRole;
+    });
 
-    const email = roleEmailMap[targetRole] || 'dm.supaul@jeevikasetu.gov.in';
-    return login(email, 'password123');
+    if (!target) {
+      target = demoUsers.find((u) => u.role === targetRole);
+    }
+
+    if (target) {
+      return login(target.email, 'password123');
+    }
+
+    return login('dm.state@jeevikasetu.gov.in', 'password123');
   };
 
   const quickLoginUser = async (targetUser: AdminUser): Promise<boolean> => {
