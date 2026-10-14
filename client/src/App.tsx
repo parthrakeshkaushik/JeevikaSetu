@@ -8,6 +8,7 @@ import { VoiceReport } from './pages/citizen/VoiceReport.js';
 import { ReportSuccess } from './pages/citizen/ReportSuccess.js';
 import { TrackReport } from './pages/citizen/TrackReport.js';
 import { ServiceDirectory } from './pages/citizen/ServiceDirectory.js';
+import { AuthCallback } from './pages/citizen/AuthCallback.js';
 import { AdminLogin } from './pages/admin/AdminLogin.js';
 import { Dashboard } from './pages/admin/Dashboard.js';
 import { CasesList } from './pages/admin/CasesList.js';
@@ -98,6 +99,7 @@ export const App: React.FC = () => {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<CitizenHome />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/report" element={<VoiceReport />} />
             <Route path="/report/success" element={<ReportSuccess />} />
             <Route path="/track" element={<TrackReport />} />
