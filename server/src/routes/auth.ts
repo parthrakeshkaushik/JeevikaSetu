@@ -124,8 +124,8 @@ router.post('/citizen-google-login', async (req: Request, res: Response): Promis
       jurisdictionName: user.jurisdictionName || 'Supaul',
     };
 
-    // Long-lived token (365 days) ensuring citizens stay logged in seamlessly
-    const token = jwt.sign(payload, CONFIG.JWT_SECRET, { expiresIn: '365d' });
+    // Maximum-lived token (10 years / 3650 days) ensuring citizens stay logged in permanently
+    const token = jwt.sign(payload, CONFIG.JWT_SECRET, { expiresIn: '3650d' });
 
     res.json({
       success: true,
