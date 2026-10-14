@@ -125,13 +125,13 @@ export const AdminLogin: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const res = await login(email, password);
     setIsLoading(false);
 
-    if (success) {
+    if (res.success) {
       navigate('/admin/dashboard');
     } else {
-      setError('अमान्य ईमेल या पासवर्ड। कृपया पुनः जांचें।');
+      setError(res.message || 'अमान्य ईमेल या पासवर्ड। कृपया पुनः जांचें।');
     }
   };
 
@@ -319,6 +319,34 @@ export const AdminLogin: React.FC = () => {
                       className="w-full pl-9 p-2.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500"
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Quick Credentials Auto-Fill Chips */}
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1.5">
+                  <span className="font-semibold text-slate-600 block">
+                    त्वरित परीक्षण क्रेडेंशियल्स (डिफ़ॉल्ट पासवर्ड: <code>password123</code>):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'DM सुपौल', email: 'dm.supaul@jeevikasetu.gov.in' },
+                      { label: 'BDO निर्मली', email: 'bdo.nirmali@jeevikasetu.gov.in' },
+                      { label: 'DM दरभंगा', email: 'dm.darbhanga@jeevikasetu.gov.in' },
+                      { label: 'राज्य DM', email: 'dm.state@jeevikasetu.gov.in' },
+                    ].map((cred) => (
+                      <button
+                        key={cred.email}
+                        type="button"
+                        onClick={() => {
+                          setEmail(cred.email);
+                          setPassword('password123');
+                          setError(null);
+                        }}
+                        className="px-2 py-0.5 bg-white hover:bg-blue-100 text-blue-700 rounded border border-slate-300 font-mono text-[10px] transition-colors"
+                      >
+                        {cred.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
