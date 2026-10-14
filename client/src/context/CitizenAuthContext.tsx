@@ -176,7 +176,7 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
 
       // Explicitly redirect to current site origin with prompt=select_account
-      const redirectTo = `${window.location.origin}/`;
+      const redirectTo = window.location.origin;
       const client = getSupabaseClient();
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
