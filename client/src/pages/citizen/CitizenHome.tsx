@@ -9,9 +9,7 @@ import {
   ArrowRight,
   Volume2,
   Building2,
-  UserCheck,
   Clock,
-  CheckCircle2,
   PlusCircle,
   RefreshCw,
   LogOut,
@@ -20,6 +18,9 @@ import {
   MapPin,
   X,
   Mail,
+  KeyRound,
+  ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -30,7 +31,26 @@ import { api } from '../../api/client.js';
 
 declare global {
   interface Window {
-    google?: any;
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: any) => void;
+          prompt: (momentListener?: (notification: any) => void) => void;
+          renderButton: (parent: HTMLElement, options: any) => void;
+          revoke: (hint: string, done: () => void) => void;
+        };
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: any) => void;
+            error_callback?: (error: any) => void;
+          }) => {
+            requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+          };
+        };
+      };
+    };
   }
 }
 
@@ -43,7 +63,13 @@ export const CitizenHome: React.FC = () => {
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Optional custom account chooser modal (for entering personal Gmail)
+  // Setup / Config Modal for Real Google Client ID
+  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+  const [clientIdInput, setClientIdInput] = useState<string>(() => {
+    return localStorage.getItem('jeevikasetu_google_client_id') || '';
+  });
+
+  // Optional custom account chooser modal (for entering specific Gmail)
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [customEmailInput, setCustomEmailInput] = useState<string>('');
 
@@ -57,11 +83,20 @@ export const CitizenHome: React.FC = () => {
   }>({ total: 0, verified: 0, inProgress: 0, submitted: 0 });
   const [isLoadingReports, setIsLoadingReports] = useState<boolean>(false);
 
+  // Get active Google Client ID
+  const getEffectiveClientId = (): string => {
+    return (
+      (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
+      localStorage.getItem('jeevikasetu_google_client_id') ||
+      ''
+    ).trim();
+  };
+
   // Audio instructions
   const notLoggedInInstruction =
     language === 'bho'
-      ? 'बिहार बाढ़ आजीविका समन्वय पोर्टल में रउरा स्वागत बा। आपन नुकसानी के रिपोर्ट दर्ज करे भा स्थिति देखे खातिर नीचे दिहल Google बटन दबा के 1-क्लिक में लॉगिन करीं।'
-      : 'बिहार बाढ़ आजीविका समन्वय पोर्टल में आपका स्वागत है। नुकसान दर्ज करने अथवा अपने आवेदनों की स्थिति देखने के लिए कृपया नीचे दिए गए "Continue with Google" बटन से 1-क्लिक लॉगिन करें।';
+      ? 'बिहार बाढ़ आजीविका समन्वय पोर्टल में रउरा स्वागत बा। आपन नुकसानी के रिपोर्ट दर्ज करे खातिर नीचे दिहल Google बटन दबा के आपन असली ईमेल से 1-क्लिक में लॉगिन करीं।'
+      : 'बिहार बाढ़ आजीविका समन्वय पोर्टल में आपका स्वागत है। नुकसान दर्ज करने अथवा अपने आवेदनों की स्थिति देखने के लिए कृपया नीचे दिए गए "Continue with Google" बटन से अपने वास्तविक Google खाते द्वारा 1-क्लिक लॉगिन करें।';
 
   const loggedInInstruction =
     language === 'bho'
@@ -95,36 +130,38 @@ export const CitizenHome: React.FC = () => {
 
   // Google Identity Services (GIS) automatic initialization
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.google?.accounts?.id && !isCitizenAuthenticated) {
+    const clientId = getEffectiveClientId();
+    if (clientId && typeof window !== 'undefined' && window.google?.accounts?.id && !isCitizenAuthenticated) {
       try {
-        const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
-        if (clientId) {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleGoogleCredentialResponse,
-            auto_select: false,
-          });
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
 
-          const container = document.getElementById('google-native-signin-btn');
-          if (container) {
-            window.google.accounts.id.renderButton(container, {
-              theme: 'outline',
-              size: 'large',
-              type: 'standard',
-              text: 'continue_with',
-              shape: 'pill',
-              logo_alignment: 'left',
-              width: 320,
-            });
-          }
+        const container = document.getElementById('google-native-signin-btn');
+        if (container) {
+          window.google.accounts.id.renderButton(container, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            text: 'continue_with',
+            shape: 'pill',
+            logo_alignment: 'left',
+            width: 320,
+          });
         }
+
+        // Trigger Google One Tap for instant device detection if browser supports it
+        window.google.accounts.id.prompt();
       } catch (err) {
-        console.warn('Google Identity Services setup notice:', err);
+        console.warn('GIS One-Tap initialization notice:', err);
       }
     }
   }, [isCitizenAuthenticated]);
 
-  // Decode standard Google JWT credential
+  // Decode standard Google JWT credential (from One-Tap or GIS native button)
   const handleGoogleCredentialResponse = async (response: any) => {
     if (!response?.credential) return;
     try {
@@ -139,73 +176,132 @@ export const CitizenHome: React.FC = () => {
           .join('')
       );
       const profile = JSON.parse(jsonPayload);
-      const success = await loginWithGoogle(
-        profile.email,
-        profile.name || profile.given_name,
-        undefined,
-        profile.picture
-      );
-      if (!success) {
-        setLoginError('Google लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
+      if (profile.email) {
+        await loginWithGoogle(
+          profile.email,
+          profile.name || profile.given_name || profile.email.split('@')[0],
+          undefined,
+          profile.picture
+        );
       }
     } catch (err) {
-      console.error('Failed to parse Google credential:', err);
+      console.error('Failed to parse Google JWT credential:', err);
       setLoginError('Google टोकन सत्यापित करने में समस्या आई।');
     } finally {
       setIsSigningIn(false);
     }
   };
 
-  // Direct 1-Click Google Sign In (takes name, profile picture, basic details with zero manual typing)
-  const handleContinueWithGoogle = async (specificEmail?: string, specificName?: string) => {
+  // REAL Google OAuth 2.0 Sign In:
+  // Opens official Google Account Chooser popup on device/phone,
+  // fetches REAL email, name, and profile picture from Google userinfo API
+  const handleContinueWithGoogle = async () => {
     setLoginError(null);
+    const clientId = getEffectiveClientId();
+
+    // If Google Client ID is not yet configured, show the setup modal with 1-click guide
+    if (!clientId) {
+      setShowConfigModal(true);
+      return;
+    }
+
+    if (typeof window === 'undefined' || !window.google?.accounts?.oauth2) {
+      setLoginError('Google Identity Services लोड हो रही है। कृपया 2 सेकंड बाद पुनः क्लिक करें।');
+      return;
+    }
+
     setIsSigningIn(true);
     try {
-      const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
-      if (clientId && window.google?.accounts?.id && !specificEmail) {
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            executeDirectLogin(specificEmail, specificName);
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'openid email profile',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse.error) {
+            console.error('Google OAuth error:', tokenResponse);
+            setLoginError(`Google प्रमाणीकरण रद्द या विफल: ${tokenResponse.error_description || tokenResponse.error}`);
+            setIsSigningIn(false);
+            return;
           }
-        });
-        return;
-      }
-      await executeDirectLogin(specificEmail, specificName);
+
+          if (tokenResponse.access_token) {
+            try {
+              // Fetch REAL user profile directly from Google's official userinfo API
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: {
+                  Authorization: `Bearer ${tokenResponse.access_token}`,
+                },
+              });
+              const profile = await res.json();
+
+              if (profile && profile.email) {
+                const realEmail = profile.email;
+                const realName = profile.name || profile.given_name || realEmail.split('@')[0];
+                const realPicture = profile.picture; // Official Google avatar from lh3.googleusercontent.com
+
+                await loginWithGoogle(realEmail, realName, undefined, realPicture);
+              } else {
+                setLoginError('Google खाते से वास्तविक ईमेल प्राप्त नहीं हो सका।');
+              }
+            } catch (fetchErr: any) {
+              console.error('Failed to fetch real Google profile:', fetchErr);
+              setLoginError('Google प्रोफाइल विवरण प्राप्त करने में समस्या आई।');
+            } finally {
+              setIsSigningIn(false);
+            }
+          }
+        },
+        error_callback: (err: any) => {
+          console.error('Google popup error:', err);
+          setLoginError('Google लॉगिन पॉपअप अवरुद्ध हो गया। कृपया ब्राउज़र सेटिंग्स में पॉपअप की अनुमति दें।');
+          setIsSigningIn(false);
+        },
+      });
+
+      // Triggers the real Google Account Picker popup on the device/phone
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (err: any) {
-      console.error('Google login error:', err);
-      setLoginError('Google लॉगिन में त्रुटि आई। कृपया पुनः प्रयास करें।');
-    } finally {
+      console.error('OAuth token client invocation failed:', err);
+      setLoginError('Google प्रमाणीकरण शुरू करने में समस्या आई। कृपया पुनः प्रयास करें।');
       setIsSigningIn(false);
     }
   };
 
-  const executeDirectLogin = async (specificEmail?: string, specificName?: string) => {
-    const email = (specificEmail && specificEmail.trim().toLowerCase()) || 'citizen.google@gmail.com';
-    const fullName = specificName || (email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) + ' (नागरिक)');
-    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}&backgroundColor=4285F4,34A853,FBBC05,EA4335`;
-    const success = await loginWithGoogle(email, fullName, undefined, avatarUrl);
-    if (!success) {
-      setLoginError('Google लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
-    } else {
-      setShowAccountModal(false);
+  // Save manual Client ID
+  const handleSaveClientId = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientIdInput.trim()) {
+      setLoginError('कृपया मान्य Google Client ID दर्ज करें।');
+      return;
     }
+    const cleanId = clientIdInput.trim();
+    localStorage.setItem('jeevikasetu_google_client_id', cleanId);
+    setShowConfigModal(false);
+    // Immediately trigger real Google login
+    setTimeout(() => {
+      handleContinueWithGoogle();
+    }, 100);
   };
 
+  // Specific custom Gmail submit
   const handleCustomEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customEmailInput.trim() || !customEmailInput.includes('@')) {
-      setLoginError('कृपया वैध ईमेल आईडी दर्ज करें (उदा. yourname@gmail.com)');
+      setLoginError('कृपया वैध Gmail / ईमेल आईडी दर्ज करें (उदा. yourname@gmail.com)');
       return;
     }
     const cleanMail = customEmailInput.trim().toLowerCase();
     const cleanName = cleanMail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    handleContinueWithGoogle(cleanMail, cleanName);
+    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanName)}&backgroundColor=4285F4,34A853,FBBC05,EA4335`;
+    loginWithGoogle(cleanMail, cleanName, undefined, avatarUrl);
+    setShowAccountModal(false);
   };
+
+  const configuredClientId = getEffectiveClientId();
 
   return (
     <div className="min-h-[85vh] py-6 px-4 max-w-2xl mx-auto space-y-6">
       {/* ======================================================== */}
-      {/* 1. NOT AUTHENTICATED STATE: Clean, 1-Click Google Gate  */}
+      {/* 1. NOT AUTHENTICATED STATE: Real 1-Click Google Gate    */}
       {/* ======================================================== */}
       {!isCitizenAuthenticated ? (
         <div className="space-y-6">
@@ -233,7 +329,7 @@ export const CitizenHome: React.FC = () => {
             </div>
           </div>
 
-          {/* Login Card (Google Direct Gate) */}
+          {/* Login Card (Google Real Gate) */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-slate-200 dark:border-slate-700 shadow-lg space-y-6 text-center">
             <div className="space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-teal-600 text-white flex items-center justify-center mx-auto shadow-md">
@@ -243,7 +339,7 @@ export const CitizenHome: React.FC = () => {
                 नागरिक पहचान व सुरक्षित प्रवेश
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                बिना किसी फॉर्म भरे, केवल एक क्लिक में अपने Google खाते से सुरक्षित प्रवेश करें।
+                अपने डिवाइस के वास्तविक Google खाते से सुरक्षित लॉगिन करें — आपका नाम व प्रोफाइल स्वतः लिंक हो जाएंगे।
               </p>
             </div>
 
@@ -255,14 +351,14 @@ export const CitizenHome: React.FC = () => {
               </div>
             )}
 
-            {/* Native GIS Container (if Client ID configured) */}
+            {/* Native GIS Button Container (if configured) */}
             <div id="google-native-signin-btn" className="flex justify-center empty:hidden"></div>
 
             {/* Primary 1-Click "Continue with Google" Button */}
-            <div className="pt-2">
+            <div className="pt-1">
               <button
                 type="button"
-                onClick={() => handleContinueWithGoogle()}
+                onClick={handleContinueWithGoogle}
                 disabled={authLoading || isSigningIn}
                 className="w-full py-4 px-6 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/90 text-slate-900 dark:text-white font-extrabold rounded-2xl border-2 border-slate-300 dark:border-slate-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3.5 text-base sm:text-lg active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-blue-300 group cursor-pointer"
               >
@@ -286,19 +382,31 @@ export const CitizenHome: React.FC = () => {
                   />
                 </svg>
                 <span>
-                  {authLoading || isSigningIn ? 'Google से लॉगिन हो रहा है...' : 'Continue with Google / Google से जारी रखें'}
+                  {isSigningIn || authLoading
+                    ? 'Google से जुड़ रहे हैं...'
+                    : 'Continue with Google / Google से जारी रखें'}
                 </span>
               </button>
             </div>
 
-            {/* Optional Switch Account Helper */}
-            <div className="pt-1">
+            {/* Quick Helper Links */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-1">
               <button
                 type="button"
                 onClick={() => setShowAccountModal(true)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold underline underline-offset-4 transition-colors"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold underline underline-offset-4 transition-colors"
               >
-                अन्य Google / Gmail खाता चुनें (Sign in with a specific Gmail ID)
+                विशिष्ट Gmail आईडी दर्ज करें (Enter specific Gmail ID)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(true)}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1 transition-colors"
+                title="Google OAuth Client ID कॉन्फ़िगर करें"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Google Client ID {configuredClientId ? '(सक्रिय)' : 'जोड़ें'}</span>
               </button>
             </div>
 
@@ -306,7 +414,7 @@ export const CitizenHome: React.FC = () => {
             <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl text-blue-900 dark:text-blue-200 text-xs flex items-start gap-2.5 border border-blue-200 dark:border-blue-800 text-left">
               <ShieldCheck className="w-5 h-5 text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <span className="leading-relaxed">
-                <strong>स्थायी व सुरक्षित सत्र:</strong> एक बार लॉगिन करने के उपरांत टोकन आपके डिवाइस में सुरक्षित रहता है। आपको नुकसान दर्ज करने या स्थिति जांचने के लिए बार-बार लॉगिन नहीं करना पड़ेगा।
+                <strong>वास्तविक व स्थायी लॉगिन:</strong> आपके फोन/कंप्यूटर का असली Google ईमेल और प्रोफाइल चित्र सुरक्षित रूप से लिंक होगा। टोकन आपके डिवाइस में 365 दिन सुरक्षित रहता है।
               </span>
             </div>
           </div>
@@ -368,6 +476,7 @@ export const CitizenHome: React.FC = () => {
                 <img
                   src={citizen.avatarUrl}
                   alt={citizen.fullName}
+                  referrerPolicy="no-referrer"
                   className="w-12 h-12 rounded-2xl object-cover border-2 border-blue-500 shadow-xs"
                 />
               ) : (
@@ -684,7 +793,100 @@ export const CitizenHome: React.FC = () => {
       )}
 
       {/* ======================================================== */}
-      {/* 3. OPTIONAL ACCOUNT CHOOSER MODAL (Simple, 1-Click)     */}
+      {/* 3. REAL GOOGLE OAUTH CLIENT ID CONFIGURATION MODAL      */}
+      {/* ======================================================== */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border-2 border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-blue-600" />
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                  वास्तविक Google OAuth सेटअप (Real Google Sign-In)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              अपने पोर्टल पर वास्तविक उपयोगकर्ताओं के फोन या डिवाइस से उनका <strong>असली Gmail ईमेल, नाम और Google प्रोफाइल फोटो</strong> स्वतः फेच करने के लिए Google Cloud Console से प्राप्त OAuth Client ID दर्ज करें:
+            </p>
+
+            <form onSubmit={handleSaveClientId} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Google OAuth 2.0 Web Client ID
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={clientIdInput}
+                  onChange={(e) => setClientIdInput(e.target.value)}
+                  placeholder="उदा. xxxxxxxx-xxxxxxxx.apps.googleusercontent.com"
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+                />
+              </div>
+
+              {/* 3-Step Guide */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>त्वरित 2 मिनट सेटअप निर्देश:</span>
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <span>Google Cloud Console</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                  <li>"Create Credentials" ➔ "OAuth client ID" ➔ "Web application" चुनें।</li>
+                  <li>
+                    Authorized JavaScript Origins में{' '}
+                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-[10px]">
+                      https://jeevikasetu-ten.vercel.app
+                    </code>{' '}
+                    और{' '}
+                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-[10px]">
+                      http://localhost:5173
+                    </code>{' '}
+                    जोड़ें।
+                  </li>
+                  <li>बनने के बाद Client ID यहां पेस्ट करें (या Vercel में <code>VITE_GOOGLE_CLIENT_ID</code> डालें)।</li>
+                </ol>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>सेव करें व वास्तविक Google लॉगिन शुरू करें</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200"
+                >
+                  रद्द करें
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 4. SPECIFIC GMAIL ACCOUNT MODAL                          */}
       {/* ======================================================== */}
       {showAccountModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -693,7 +895,7 @@ export const CitizenHome: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5 text-blue-600" />
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                  अपना विशिष्ट Gmail खाता चुनें
+                  अपना व्यक्तिगत Gmail पता दर्ज करें
                 </h3>
               </div>
               <button
@@ -706,7 +908,7 @@ export const CitizenHome: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              यदि आप अपने किसी विशेष Gmail पते से लॉगिन करना चाहते हैं, तो कृपया नीचे ईमेल दर्ज करें:
+              यदि आप अपने किसी विशेष Gmail पते से जुड़ना चाहते हैं, तो कृपया नीचे ईमेल दर्ज करें:
             </p>
 
             <form onSubmit={handleCustomEmailSubmit} className="space-y-3">
