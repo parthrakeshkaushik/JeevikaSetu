@@ -17,6 +17,9 @@ import {
   FileText,
   MapPin,
   CheckCircle2,
+  KeyRound,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -35,11 +38,14 @@ export const CitizenHome: React.FC = () => {
     logoutCitizen,
     isLoading: authLoading,
     isSupabaseReady,
+    configureSupabaseAnonKey,
   } = useCitizenAuth();
   const navigate = useNavigate();
 
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showAnonKeyPrompt, setShowAnonKeyPrompt] = useState<boolean>(false);
+  const [anonKeyInput, setAnonKeyInput] = useState<string>('');
 
   // Citizen Dashboard Reports State
   const [myReports, setMyReports] = useState<any[]>([]);
@@ -90,17 +96,51 @@ export const CitizenHome: React.FC = () => {
   // Genuine Google OAuth Trigger: Opens accounts.google.com account selector
   const handleGoogleSignInClick = async () => {
     setLoginError(null);
+    if (!isSupabaseReady) {
+      setShowAnonKeyPrompt(true);
+      return;
+    }
+
     setIsSigningIn(true);
     try {
       const res = await signInWithGoogleOAuth();
       if (!res.success && res.error) {
-        setLoginError(res.error);
+        if (res.error.includes('Anon Key')) {
+          setShowAnonKeyPrompt(true);
+        } else {
+          setLoginError(res.error);
+        }
       }
     } catch (err: any) {
       console.error('Google Sign-In failed:', err);
       setLoginError('Google प्रमाणीकरण शुरू करने में समस्या आई। कृपया पुनः प्रयास करें।');
     } finally {
       setIsSigningIn(false);
+    }
+  };
+
+  const handleSaveAnonKeyAndLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanKey = anonKeyInput.trim();
+    if (!cleanKey || cleanKey.length < 20) {
+      setLoginError('कृपया मान्य Supabase Key (eyJ... अथवा sb_publishable_...) दर्ज करें।');
+      return;
+    }
+
+    configureSupabaseAnonKey(cleanKey);
+    setShowAnonKeyPrompt(false);
+    setIsSigningIn(true);
+    try {
+      setTimeout(async () => {
+        const res = await signInWithGoogleOAuth();
+        if (!res.success && res.error) {
+          setLoginError(res.error);
+        }
+        setIsSigningIn(false);
+      }, 150);
+    } catch (err: any) {
+      setIsSigningIn(false);
+      setLoginError('Google प्रमाणीकरण शुरू करने में समस्या आई।');
     }
   };
 
@@ -573,6 +613,98 @@ export const CitizenHome: React.FC = () => {
                 <strong className="text-slate-900 dark:text-amber-300 font-extrabold">महत्वपूर्ण सूचना: </strong>
                 यह पोर्टल बाढ़ प्रभावित परिवारों के आजीविका नुकसान को सरकारी रिकॉर्ड में दर्ज कर भौतिक सत्यापन व पुनर्प्राप्ति समन्वय हेतु है।
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Supabase Anon Public Key One-Time Setup Modal */}
+      {showAnonKeyPrompt && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border-2 border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
+                    Supabase Anon Key आवश्यक है
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Google OAuth प्रमाणीकरण कनेक्ट करने के लिए
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAnonKeyPrompt(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-left text-xs text-slate-600 dark:text-slate-300">
+              <p>
+                Google OAuth को सुरक्षित रूप से आपके Supabase प्रोजेक्ट (<span className="font-mono text-emerald-600 font-bold">wrnkpwgaygydbekdpfmg</span>) से कनेक्ट करने के लिए <strong>Anon Public Key</strong> की आवश्यकता है:
+              </p>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1.5">
+                <div className="font-bold text-slate-800 dark:text-slate-200">
+                  सीधा लिंक (Direct Link):
+                </div>
+                <a
+                  href="https://supabase.com/dashboard/project/wrnkpwgaygydbekdpfmg/settings/api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  <span>Supabase API Settings खोलें</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  वहाँ <strong>Project API keys</strong> में से <strong>anon public</strong> key (जो <code>eyJ...</code> से शुरू होती है) कॉपी करें।
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveAnonKeyAndLogin} className="space-y-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Supabase Anon Public Key पेस्ट करें:
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={anonKeyInput}
+                    onChange={(e) => setAnonKeyInput(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isSigningIn}
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    <span>कुंजी सहेजें एवं Google से लॉगिन करें</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAnonKeyPrompt(false)}
+                    className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer"
+                  >
+                    रद्द करें
+                  </button>
+                </div>
+              </form>
+
+              <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                💡 <em>नोट:</em> यह कुंजी आपके इस ब्राउज़र में स्थायी रूप से सुरक्षित रहेगी। सभी आगंतुकों के लिए इसे Vercel Environment Variables में <code>VITE_SUPABASE_ANON_KEY</code> के रूप में भी जोड़ें।
+              </div>
             </div>
           </div>
         </div>

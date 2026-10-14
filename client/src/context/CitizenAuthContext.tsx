@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api/client.js';
-import { supabase, isSupabaseConfigured } from '../supabase.js';
+import { getSupabaseClient, isSupabaseConfigured, setSupabaseAnonKey } from '../supabase.js';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface CitizenProfile {
@@ -21,6 +21,7 @@ interface CitizenAuthContextType {
   signInWithGoogleOAuth: () => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (email: string, fullName?: string, phone?: string, avatarUrl?: string) => Promise<boolean>;
   logoutCitizen: () => Promise<void>;
+  configureSupabaseAnonKey: (key: string) => void;
 }
 
 const CitizenAuthContext = createContext<CitizenAuthContextType | undefined>(undefined);
@@ -40,7 +41,7 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const isSupabaseReady = isSupabaseConfigured();
+  const [isSupabaseReady, setIsSupabaseReady] = useState<boolean>(() => isSupabaseConfigured());
 
   // Helper to extract clean citizen profile from genuine Supabase user object
   const extractProfileFromSupabaseUser = (user: SupabaseUser): CitizenProfile => {
@@ -65,15 +66,20 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   };
 
+  const configureSupabaseAnonKey = (key: string) => {
+    setSupabaseAnonKey(key);
+    setIsSupabaseReady(isSupabaseConfigured());
+  };
+
   // Sync Supabase Auth session on initial mount and URL redirect
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        if (isSupabaseReady) {
-          // Check for existing session or handle code / token in URL
-          const { data: { session }, error } = await supabase.auth.getSession();
+        if (isSupabaseConfigured()) {
+          const client = getSupabaseClient();
+          const { data: { session }, error } = await client.auth.getSession();
           if (error) {
             console.warn('Supabase getSession error:', error.message);
           } else if (session?.user && mounted) {
@@ -103,9 +109,10 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // Listen for authentication state transitions (e.g. after OAuth redirect)
     let authListener: { subscription: { unsubscribe: () => void } } | null = null;
-    if (isSupabaseReady) {
+    if (isSupabaseConfigured()) {
       try {
-        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const client = getSupabaseClient();
+        const { data } = client.auth.onAuthStateChange(async (event, session) => {
           if (!mounted) return;
           if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
             const profile = extractProfileFromSupabaseUser(session.user);
@@ -170,7 +177,8 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       // Explicitly redirect to current site origin with prompt=select_account
       const redirectTo = `${window.location.origin}/`;
-      const { error } = await supabase.auth.signInWithOAuth({
+      const client = getSupabaseClient();
+      const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
@@ -254,8 +262,9 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const logoutCitizen = async (): Promise<void> => {
     try {
-      if (isSupabaseReady) {
-        await supabase.auth.signOut();
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        await client.auth.signOut();
       }
     } catch (err) {
       console.warn('Supabase signOut error:', err);
@@ -278,6 +287,7 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         signInWithGoogleOAuth,
         loginWithGoogle,
         logoutCitizen,
+        configureSupabaseAnonKey,
       }}
     >
       {children}

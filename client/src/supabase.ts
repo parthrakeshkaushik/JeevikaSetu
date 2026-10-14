@@ -1,35 +1,65 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // User's Supabase project instance
 const SUPABASE_PROJECT_URL =
   (import.meta as any).env?.VITE_SUPABASE_URL || 'https://wrnkpwgaygydbekdpfmg.supabase.co';
 
-const SUPABASE_ANON_KEY =
-  (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
+export const getSupabaseAnonKey = (): string => {
+  try {
+    return (
+      (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
+      (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      localStorage.getItem('jeevikasetu_supabase_anon_key') ||
+      ''
+    ).trim();
+  } catch {
+    return '';
+  }
+};
+
+export const setSupabaseAnonKey = (key: string): void => {
+  try {
+    if (key && key.trim()) {
+      localStorage.setItem('jeevikasetu_supabase_anon_key', key.trim());
+    }
+  } catch (e) {
+    console.warn('Could not persist anon key in localStorage:', e);
+  }
+};
 
 /**
  * Returns true if the Supabase project URL and anon public key are properly configured.
  */
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.trim().length > 10);
+  const key = getSupabaseAnonKey();
+  return Boolean(key && key.length > 20);
 };
 
 export const getSupabaseProjectUrl = (): string => {
   return SUPABASE_PROJECT_URL;
 };
 
-// Initialize the official Supabase JS client
-// Fallback placeholder prevents module instantiation crash if env var is missing during initial setup
-export const supabase = createClient(
-  SUPABASE_PROJECT_URL,
-  SUPABASE_ANON_KEY || 'placeholder-anon-key-configure-in-env',
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce',
-      storage: window.localStorage,
-    },
+// Internal active client cache
+let activeSupabaseClient: SupabaseClient | null = null;
+
+export const getSupabaseClient = (): SupabaseClient => {
+  const currentKey = getSupabaseAnonKey();
+  if (!activeSupabaseClient || (currentKey && currentKey.length > 20)) {
+    activeSupabaseClient = createClient(
+      SUPABASE_PROJECT_URL,
+      currentKey || 'placeholder-anon-key-configure-in-env',
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce',
+          storage: window.localStorage,
+        },
+      }
+    );
   }
-);
+  return activeSupabaseClient;
+};
+
+export const supabase = getSupabaseClient();
