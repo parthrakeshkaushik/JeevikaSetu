@@ -1,0 +1,234 @@
+// Prisma Schema for JeevikaSetu
+// Bihar-focused Voice-First Flood Livelihood Recovery and Administrative Coordination Platform
+// Default local development: SQLite (file:./dev.db)
+// Production ready for PostgreSQL via switching provider to "postgresql"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  fullName         String
+  phone            String?
+  role             String   // VOLUNTEER, BDO, DDC, DPO, ADM, SDM, DM, SYSTEM_ADMIN
+  department       String?  // e.g., "Rural Development", "Disaster Management", "Agriculture", "JEEViKA"
+  jurisdictionType String?  // DISTRICT, SUBDIVISION, BLOCK, PANCHAYAT
+  jurisdictionName String?  // e.g., "Supaul", "Nirmali", "Darbhanga"
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  assignedReports     LivelihoodReport[]    @relation("AssignedToUser")
+  verifications       VerificationRecord[]
+  workflowEvents      WorkflowEvent[]
+  followUpActions     FollowUpAction[]
+  escalationsInitiated EscalationRecord[]   @relation("EscalatedBy")
+
+  @@index([role])
+  @@index([jurisdictionName])
+}
+
+model Jurisdiction {
+  id        String   @id @default(uuid())
+  level     String   // STATE, DISTRICT, SUBDIVISION, BLOCK, PANCHAYAT, VILLAGE
+  name      String
+  nameHindi String?
+  code      String   @unique
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([parentId])
+}
+
+model LivelihoodReport {
+  id                   String   @id @default(uuid())
+  reportNumber         String   @unique // e.g., "JS-2027-SUP-8492"
+  
+  // Citizen basic details
+  citizenName          String
+  citizenPhone         String   // 10 digits
+  preferredLanguage    String   @default("hi") // "hi", "bho", "en"
+  
+  // Voice & transcription details
+  isVoiceReport        Boolean  @default(false)
+  rawTranscript        String?  // Original speech transcript
+  confirmedTranscript  String   // Confirmed / edited text by citizen
+  audioSimulationUrl   String?  // Sample or recorded audio trace
+  
+  // Geographical location in Bihar
+  district             String   // e.g., "Supaul", "Darbhanga", "Madhubani", "Muzaffarpur", "Saharsa"
+  block                String   // e.g., "Nirmali", "Kishanpur", "Kusheshwar Asthan"
+  panchayat            String   // e.g., "Mahuwa", "Pipra", "Satiyara"
+  village              String   // e.g., "Rampur", "Belhi", "Haripur"
+  wardNumber           String?
+  gpsLatitude          Float?
+  gpsLongitude         Float?
+  
+  // Livelihood damage classification (JSON array string: ["CROP", "LIVESTOCK", ...])
+  livelihoodCategories String
+  
+  // Narrative & self-reported impact
+  lossDescription      String
+  estimatedLossAmount  Float?   // Self-reported estimate only; never authoritative
+  disruptionDurationDays Int?   // Estimated duration of wage/business disruption
+  householdSize        Int?     @default(5)
+  vulnerabilityFlags   String?  // JSON string: ["WOMEN_HEADED", "MARGINAL_FARMER", "LANDLESS_LABOR", "ELDERLY", "DISABLED"]
+  
+  // Priority engine outputs
+  priorityScore        Int      @default(50) // 0 - 100
+  priorityLevel        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  priorityRationale    String?  // Explainable breakdown
+  
+  // Workflow state machine
+  status               String   @default("SUBMITTED")
+  // Allowed: SUBMITTED, AWAITING_REVIEW, ASSIGNED_FOR_VERIFICATION, VERIFICATION_IN_PROGRESS,
+  //          VERIFIED, PARTIALLY_VERIFIED, UNABLE_TO_VERIFY, ADDITIONAL_INFO_REQUIRED,
+  //          REFERRED_FOR_RECOVERY, FOLLOWUP_IN_PROGRESS, ACTION_RECORDED, CLOSED, REOPENED
+  
+  assignedUserId       String?
+  assignedToUser       User?    @relation("AssignedToUser", fields: [assignedUserId], references: [id])
+  assignedRole         String?  // VOLUNTEER, BDO, etc.
+  
+  // Photos / Attachments
+  photoUrls            String?  // JSON array string of photo urls or placeholders
+  
+  // Timestamps
+  submittedAt          DateTime @default(now())
+  verifiedAt           DateTime?
+  closedAt             DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  verificationRecords  VerificationRecord[]
+  workflowEvents       WorkflowEvent[]
+  followUpActions      FollowUpAction[]
+  escalationRecords    EscalationRecord[]
+
+  @@index([reportNumber])
+  @@index([status])
+  @@index([district, block])
+  @@index([citizenPhone])
+  @@index([priorityLevel])
+}
+
+model VerificationRecord {
+  id                    String   @id @default(uuid())
+  reportId              String
+  report                LivelihoodReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  verifiedByUserId      String
+  verifiedByUser        User     @relation(fields: [verifiedByUserId], references: [id])
+  verifiedRole          String   // e.g. "VOLUNTEER"
+  
+  outcome               String   // VERIFIED, PARTIALLY_VERIFIED, UNABLE_TO_VERIFY, ADDITIONAL_INFO_REQUIRED
+  fieldObservations     String
+  recommendedAction     String?  // e.g. "Fodder support camp", "JEEViKA loan restructuring"
+  
+  verifiedCropLossBigha Float?
+  verifiedCattleLost    Int?
+  verifiedEquipmentLoss String?
+  photoEvidenceUrls     String?  // JSON array
+  
+  reasonForDecision     String
+  createdAt             DateTime @default(now())
+
+  @@index([reportId])
+  @@index([verifiedByUserId])
+}
+
+model WorkflowEvent {
+  id          String   @id @default(uuid())
+  reportId    String
+  report      LivelihoodReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  actorUserId String?
+  actorUser   User?    @relation(fields: [actorUserId], references: [id])
+  actorName   String
+  actorRole   String
+  
+  action      String   // SUBMIT, ASSIGN, REASSIGN, VERIFY, ESCALATE, REFER_RECOVERY, RECORD_ACTION, CLOSE, REOPEN, NOTE
+  fromStatus  String?
+  toStatus    String?
+  remarks     String?
+  metadata    String?  // JSON string for additional context
+  createdAt   DateTime @default(now())
+
+  @@index([reportId])
+  @@index([createdAt])
+}
+
+model FollowUpAction {
+  id                   String   @id @default(uuid())
+  reportId             String
+  report               LivelihoodReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  programmeType        String   // JEEVIKA_SHG, MGNREGA_JOB_DEMAND, ANIMAL_HUSBANDRY_CAMP, SEED_INPUT_SUBSIDY, REVENUE_RELIEF_RECORDS, MICRO_CREDIT_RECOVERY, SKILL_TRAINING
+  assignedDepartment   String   // e.g., "JEEViKA SRLM", "Animal Husbandry Dept", "Agriculture Dept", "Disaster Mgmt"
+  status               String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  actionDetails        String
+  targetDate           DateTime?
+  recordedByUserId     String
+  recordedByUser       User     @relation(fields: [recordedByUserId], references: [id])
+  completedAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([reportId])
+  @@index([status])
+}
+
+model EscalationRecord {
+  id                String   @id @default(uuid())
+  reportId          String
+  report            LivelihoodReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  escalatedByUserId String
+  escalatedByUser   User     @relation("EscalatedBy", fields: [escalatedByUserId], references: [id])
+  escalatedFromRole String
+  escalatedToRole   String   // ADM, SDM, DM
+  reason            String   // OVERDUE_VERIFICATION, UNRESOLVED_BOTTLENECK, SEVERE_VULNERABILITY, PUBLIC_REPRESENTATION
+  status            String   @default("PENDING") // PENDING, REVIEWED, RESOLVED
+  administrativeNote String?
+  resolvedAt        DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([reportId])
+  @@index([status])
+}
+
+model ServiceDirectoryEntry {
+  id               String   @id @default(uuid())
+  district         String
+  block            String?
+  department       String   // e.g., "Disaster Management", "Animal Health", "Agriculture Dept", "JEEViKA"
+  schemeName       String   // e.g., "Emergency Cattle Fodder Distribution", "Contingency Seed Programme"
+  description      String
+  contactPerson    String
+  contactPhone     String
+  officeAddress    String
+  eligibilityNotes String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@index([district])
+  @@index([department])
+}
+
+model SystemAuditLog {
+  id          String   @id @default(uuid())
+  action      String   // LOGIN, LOGOUT, CONFIG_CHANGE, EXPORT_DATA, USER_CREATE
+  userId      String?
+  userEmail   String?
+  userRole    String?
+  ipAddress   String?
+  details     String?
+  timestamp   DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([action])
+}
