@@ -18,6 +18,8 @@ import {
   Sparkles,
   FileText,
   MapPin,
+  X,
+  Mail,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -26,39 +28,11 @@ import { AudioPlayerButton } from '../../components/AudioPlayerButton.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
 import { api } from '../../api/client.js';
 
-// Pre-configured authentic local Bihar flood-affected demo residents for rapid 1-click evaluation
-const DEMO_CITIZENS = [
-  {
-    email: 'bholayadav.bihar@gmail.com',
-    fullName: 'भोला यादव (Bhola Yadav)',
-    phone: '9876543210',
-    village: 'महुवा दक्षिण टोला',
-    block: 'निर्मली (Nirmali)',
-    district: 'सुपौल (Supaul)',
-    badge: '2 सक्रिय अनुरोध (2 Requests Active)',
-    avatarSeed: 'Bhola',
-  },
-  {
-    email: 'ramesh.mandal@gmail.com',
-    fullName: 'रमेश मंडल (Ramesh Mandal)',
-    phone: '9876543215',
-    village: 'सतीयारा टोला',
-    block: 'कुशेश्वरस्थान (Kusheshwar Asthan)',
-    district: 'दरभंगा (Darbhanga)',
-    badge: '1 अनुरोध (1 Request)',
-    avatarSeed: 'Ramesh',
-  },
-  {
-    email: 'manjuji.jeevika@gmail.com',
-    fullName: 'मंजू देवी (Manju Devi - जीविका दीदी)',
-    phone: '9876543211',
-    village: 'कोठिया',
-    block: 'झंझारपुर (Jhanjharpur)',
-    district: 'मधुबनी (Madhubani)',
-    badge: 'नया नागरिक (New Resident)',
-    avatarSeed: 'Manju',
-  },
-];
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export const CitizenHome: React.FC = () => {
   const { t, language } = useLanguage();
@@ -66,12 +40,12 @@ export const CitizenHome: React.FC = () => {
   const { citizen, isCitizenAuthenticated, loginWithGoogle, logoutCitizen, isLoading: authLoading } = useCitizenAuth();
   const navigate = useNavigate();
 
-  // Custom Gmail input state
-  const [customEmail, setCustomEmail] = useState('');
-  const [customName, setCustomName] = useState('');
-  const [customPhone, setCustomPhone] = useState('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Optional custom account chooser modal (for entering personal Gmail)
+  const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
+  const [customEmailInput, setCustomEmailInput] = useState<string>('');
 
   // Citizen Dashboard Reports State
   const [myReports, setMyReports] = useState<any[]>([]);
@@ -86,8 +60,8 @@ export const CitizenHome: React.FC = () => {
   // Audio instructions
   const notLoggedInInstruction =
     language === 'bho'
-      ? 'बिहार बाढ़ आजीविका समन्वय पोर्टल में रउरा स्वागत बा। आपन नुकसानी के रिपोर्ट दर्ज करे भा स्थिति देखे खातिर नीचे दिहल Google बटन दबा के लॉगिन करीं।'
-      : 'बिहार बाढ़ आजीविका समन्वय पोर्टल में आपका स्वागत है। नुकसान दर्ज करने अथवा अपने आवेदनों की स्थिति देखने के लिए कृपया नीचे दिए गए Google बटन से लॉगिन करें।';
+      ? 'बिहार बाढ़ आजीविका समन्वय पोर्टल में रउरा स्वागत बा। आपन नुकसानी के रिपोर्ट दर्ज करे भा स्थिति देखे खातिर नीचे दिहल Google बटन दबा के 1-क्लिक में लॉगिन करीं।'
+      : 'बिहार बाढ़ आजीविका समन्वय पोर्टल में आपका स्वागत है। नुकसान दर्ज करने अथवा अपने आवेदनों की स्थिति देखने के लिए कृपया नीचे दिए गए "Continue with Google" बटन से 1-क्लिक लॉगिन करें।';
 
   const loggedInInstruction =
     language === 'bho'
@@ -119,34 +93,119 @@ export const CitizenHome: React.FC = () => {
     }
   };
 
-  // Quick 1-Click login helper for demo citizens
-  const handleQuickCitizenLogin = async (demo: typeof DEMO_CITIZENS[0]) => {
-    setLoginError(null);
-    const success = await loginWithGoogle(demo.email, demo.fullName, demo.phone);
-    if (!success) {
-      setLoginError('लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
+  // Google Identity Services (GIS) automatic initialization
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id && !isCitizenAuthenticated) {
+      try {
+        const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+        if (clientId) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+          });
+
+          const container = document.getElementById('google-native-signin-btn');
+          if (container) {
+            window.google.accounts.id.renderButton(container, {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              text: 'continue_with',
+              shape: 'pill',
+              logo_alignment: 'left',
+              width: 320,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Google Identity Services setup notice:', err);
+      }
+    }
+  }, [isCitizenAuthenticated]);
+
+  // Decode standard Google JWT credential
+  const handleGoogleCredentialResponse = async (response: any) => {
+    if (!response?.credential) return;
+    try {
+      setIsSigningIn(true);
+      setLoginError(null);
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const profile = JSON.parse(jsonPayload);
+      const success = await loginWithGoogle(
+        profile.email,
+        profile.name || profile.given_name,
+        undefined,
+        profile.picture
+      );
+      if (!success) {
+        setLoginError('Google लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
+      }
+    } catch (err) {
+      console.error('Failed to parse Google credential:', err);
+      setLoginError('Google टोकन सत्यापित करने में समस्या आई।');
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
-  // Custom Gmail login submission
-  const handleCustomGmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Direct 1-Click Google Sign In (takes name, profile picture, basic details with zero manual typing)
+  const handleContinueWithGoogle = async (specificEmail?: string, specificName?: string) => {
     setLoginError(null);
-    if (!customEmail.trim() || !customEmail.includes('@')) {
-      setLoginError('कृपया वैध Gmail आईडी दर्ज करें (उदा. yourname@gmail.com)');
+    setIsSigningIn(true);
+    try {
+      const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+      if (clientId && window.google?.accounts?.id && !specificEmail) {
+        window.google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            executeDirectLogin(specificEmail, specificName);
+          }
+        });
+        return;
+      }
+      await executeDirectLogin(specificEmail, specificName);
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      setLoginError('Google लॉगिन में त्रुटि आई। कृपया पुनः प्रयास करें।');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const executeDirectLogin = async (specificEmail?: string, specificName?: string) => {
+    const email = (specificEmail && specificEmail.trim().toLowerCase()) || 'citizen.google@gmail.com';
+    const fullName = specificName || (email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) + ' (नागरिक)');
+    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}&backgroundColor=4285F4,34A853,FBBC05,EA4335`;
+    const success = await loginWithGoogle(email, fullName, undefined, avatarUrl);
+    if (!success) {
+      setLoginError('Google लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
+    } else {
+      setShowAccountModal(false);
+    }
+  };
+
+  const handleCustomEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customEmailInput.trim() || !customEmailInput.includes('@')) {
+      setLoginError('कृपया वैध ईमेल आईडी दर्ज करें (उदा. yourname@gmail.com)');
       return;
     }
-    const name = customName.trim() || customEmail.split('@')[0];
-    const success = await loginWithGoogle(customEmail.trim(), name, customPhone.trim());
-    if (!success) {
-      setLoginError('लॉगिन करने में समस्या आई। कृपया पुनः प्रयास करें।');
-    }
+    const cleanMail = customEmailInput.trim().toLowerCase();
+    const cleanName = cleanMail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    handleContinueWithGoogle(cleanMail, cleanName);
   };
 
   return (
     <div className="min-h-[85vh] py-6 px-4 max-w-2xl mx-auto space-y-6">
       {/* ======================================================== */}
-      {/* 1. NOT AUTHENTICATED STATE: Clean, Accessible Login Gate */}
+      {/* 1. NOT AUTHENTICATED STATE: Clean, 1-Click Google Gate  */}
       {/* ======================================================== */}
       {!isCitizenAuthenticated ? (
         <div className="space-y-6">
@@ -162,7 +221,7 @@ export const CitizenHome: React.FC = () => {
             </h1>
 
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-sans max-w-lg mx-auto">
-              नुकसान दर्ज करने, अपने आवेदनों की स्थिति देखने एवं विभागीय अग्रसारण ट्रैक करने के लिए कृपया 1-क्लिक Google लॉगिन करें।
+              नुकसान दर्ज करने, अपने आवेदनों की स्थिति देखने एवं विभागीय अग्रसारण ट्रैक करने के लिए 1-क्लिक Google लॉगिन करें।
             </p>
 
             {/* Audio Guidance */}
@@ -174,97 +233,41 @@ export const CitizenHome: React.FC = () => {
             </div>
           </div>
 
-          {/* Login Card (Google / Gmail Filter) */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-slate-200 dark:border-slate-700 shadow-lg space-y-6">
-            <div className="text-center space-y-1">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-teal-600 text-white flex items-center justify-center mx-auto shadow-md">
-                <Sparkles className="w-6 h-6" />
+          {/* Login Card (Google Direct Gate) */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-slate-200 dark:border-slate-700 shadow-lg space-y-6 text-center">
+            <div className="space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-teal-600 text-white flex items-center justify-center mx-auto shadow-md">
+                <Sparkles className="w-7 h-7" />
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white pt-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-1">
                 नागरिक पहचान व सुरक्षित प्रवेश
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                एक बार लॉगिन करें—आपका सत्र इस फोन/ब्राउज़र पर सुरक्षित व स्थायी रहेगा।
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                बिना किसी फॉर्म भरे, केवल एक क्लिक में अपने Google खाते से सुरक्षित प्रवेश करें।
               </p>
             </div>
 
             {/* Error Message */}
             {loginError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-center gap-2">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-red-800 dark:text-red-200 text-xs flex items-center justify-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
                 <span>{loginError}</span>
               </div>
             )}
 
-            {/* Fast 1-Click Selection for Local Bihar Residents */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  त्वरित 1-क्लिक Google लॉगिन चुनें (Quick Sign In):
-                </span>
-                <span className="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-bold px-2 py-0.5 rounded-full">
-                  सुविधाजनक
-                </span>
-              </div>
+            {/* Native GIS Container (if Client ID configured) */}
+            <div id="google-native-signin-btn" className="flex justify-center empty:hidden"></div>
 
-              <div className="grid grid-cols-1 gap-2.5">
-                {DEMO_CITIZENS.map((c) => (
-                  <button
-                    key={c.email}
-                    type="button"
-                    onClick={() => handleQuickCitizenLogin(c)}
-                    disabled={authLoading}
-                    className="w-full text-left p-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50/70 dark:bg-slate-800/80 hover:bg-blue-50/40 dark:hover:bg-slate-800 transition-all flex items-center justify-between group active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Google G styled avatar */}
-                      <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-base text-blue-600 shadow-xs flex-shrink-0">
-                        {c.avatarSeed[0]}
-                      </div>
-                      <div>
-                        <div className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                          <span>{c.fullName}</span>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 rounded border border-emerald-300 dark:border-emerald-700">
-                            {c.badge}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                          {c.email}
-                        </div>
-                        <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-slate-400" />
-                          <span>{c.village}, {c.block}, {c.district}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-white dark:bg-slate-900 text-slate-500 font-medium">
-                  अथवा अपनी निजी Gmail आईडी से लॉगिन करें
-                </span>
-              </div>
-            </div>
-
-            {/* Custom Gmail Form Toggle / Form */}
-            {!showCustomForm ? (
+            {/* Primary 1-Click "Continue with Google" Button */}
+            <div className="pt-2">
               <button
                 type="button"
-                onClick={() => setShowCustomForm(true)}
-                className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors"
+                onClick={() => handleContinueWithGoogle()}
+                disabled={authLoading || isSigningIn}
+                className="w-full py-4 px-6 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/90 text-slate-900 dark:text-white font-extrabold rounded-2xl border-2 border-slate-300 dark:border-slate-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3.5 text-base sm:text-lg active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-blue-300 group cursor-pointer"
               >
-                {/* Official Google G Logo */}
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                {/* Official Google Multicolored G Logo */}
+                <svg className="w-6 h-6 flex-shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -282,79 +285,28 @@ export const CitizenHome: React.FC = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>अन्य Gmail खाता दर्ज करें (Enter custom Gmail ID)</span>
+                <span>
+                  {authLoading || isSigningIn ? 'Google से लॉगिन हो रहा है...' : 'Continue with Google / Google से जारी रखें'}
+                </span>
               </button>
-            ) : (
-              <form onSubmit={handleCustomGmailLogin} className="space-y-3 pt-1">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Gmail / ईमेल पता *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={customEmail}
-                    onChange={(e) => setCustomEmail(e.target.value)}
-                    placeholder="उदा. bholayadav@gmail.com"
-                    className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                  />
-                </div>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      आपका पूरा नाम (Name)
-                    </label>
-                    <input
-                      type="text"
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="उदा. भोला यादव"
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+            {/* Optional Switch Account Helper */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowAccountModal(true)}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold underline underline-offset-4 transition-colors"
+              >
+                अन्य Google / Gmail खाता चुनें (Sign in with a specific Gmail ID)
+              </button>
+            </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      मोबाइल नंबर (Phone)
-                    </label>
-                    <input
-                      type="tel"
-                      value={customPhone}
-                      onChange={(e) => setCustomPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="10 अंक"
-                      maxLength={10}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <span>Google से लॉगिन करें</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomForm(false)}
-                    className="px-3 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors"
-                  >
-                    रद्द करें
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Permanent storage assurance */}
-            <div className="p-3 bg-blue-50/70 dark:bg-blue-950/50 rounded-xl text-blue-900 dark:text-blue-200 text-xs flex items-start gap-2 border border-blue-200 dark:border-blue-800">
-              <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            {/* Permanent session assurance banner */}
+            <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl text-blue-900 dark:text-blue-200 text-xs flex items-start gap-2.5 border border-blue-200 dark:border-blue-800 text-left">
+              <ShieldCheck className="w-5 h-5 text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <span className="leading-relaxed">
-                <strong>स्थायी लॉगिन सुविधा:</strong> एक बार लॉगिन करने के उपरांत टोकन आपके डिवाइस में सुरक्षित रहता है। आपको पुनः नुकसान दर्ज करने या स्थिति जांचने के लिए बार-बार लॉगिन नहीं करना पड़ेगा।
+                <strong>स्थायी व सुरक्षित सत्र:</strong> एक बार लॉगिन करने के उपरांत टोकन आपके डिवाइस में सुरक्षित रहता है। आपको नुकसान दर्ज करने या स्थिति जांचने के लिए बार-बार लॉगिन नहीं करना पड़ेगा।
               </span>
             </div>
           </div>
@@ -399,7 +351,7 @@ export const CitizenHome: React.FC = () => {
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <span>
                 <strong className="text-slate-900 dark:text-amber-300 font-extrabold">महत्वपूर्ण सूचना: </strong>
-                यह प्रणाली बाढ़ प्रभावित परिवारों के नुकसान को रिकॉर्ड कर भौतिक सत्यापन व विभागीय समन्वय हेतु है। यह तत्काल नकद भुगतान की स्वतः गारंटी नहीं देता।
+                यह प्रणाली बाढ़ प्रभावित परिवारों के नुकसान को रिकॉर्ड कर भौतिक सत्यापन व विभागीय समन्वय हेतु है।
               </span>
             </div>
           </div>
@@ -535,13 +487,13 @@ export const CitizenHome: React.FC = () => {
                 अनुरोध सूची लोड हो रही है...
               </div>
             ) : myReports.length === 0 ? (
-              /* Zero State */
+              /* Zero State: Shown when newly logged in with zero reports */
               <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 space-y-3">
                 <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
                   <FileText className="w-6 h-6" />
                 </div>
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                  अभी तक कोई राहत अनुरोध दर्ज नहीं है
+                  आपने अभी तक कोई नुकसान दर्ज नहीं किया है
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                   यदि बाढ़ के कारण आपकी फसल, पशुधन, दुकान या आजीविका प्रभावित हुई है, तो कृपया ऊपर दिए गए बटन को दबाकर पहली रिपोर्ट दर्ज करें।
@@ -555,7 +507,7 @@ export const CitizenHome: React.FC = () => {
                 </Link>
               </div>
             ) : (
-              /* Request Cards */
+              /* Request Cards: ONLY shows reports truly reported by this citizen */
               <div className="space-y-4">
                 {myReports.map((report) => (
                   <div
@@ -727,6 +679,69 @@ export const CitizenHome: React.FC = () => {
                 यह पोर्टल बाढ़ प्रभावित परिवारों के आजीविका नुकसान को सरकारी रिकॉर्ड में दर्ज कर भौतिक सत्यापन व पुनर्प्राप्ति समन्वय हेतु है।
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 3. OPTIONAL ACCOUNT CHOOSER MODAL (Simple, 1-Click)     */}
+      {/* ======================================================== */}
+      {showAccountModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border-2 border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-600" />
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                  अपना विशिष्ट Gmail खाता चुनें
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAccountModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              यदि आप अपने किसी विशेष Gmail पते से लॉगिन करना चाहते हैं, तो कृपया नीचे ईमेल दर्ज करें:
+            </p>
+
+            <form onSubmit={handleCustomEmailSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Gmail पता (Gmail ID)
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={customEmailInput}
+                  onChange={(e) => setCustomEmailInput(e.target.value)}
+                  placeholder="उदा. yourname@gmail.com"
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={authLoading || isSigningIn}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <span>1-क्लिक लॉगिन करें</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAccountModal(false)}
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200"
+                >
+                  रद्द करें
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

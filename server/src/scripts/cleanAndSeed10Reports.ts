@@ -342,7 +342,7 @@ async function main() {
       await prisma.verificationRecord.create({
         data: {
           reportId: report.id,
-          verifiedByUserId: volunteer?.id,
+          verifiedByUserId: volunteer?.id || '',
           verifiedRole: 'VOLUNTEER',
           outcome: verification.outcome as any,
           fieldObservations: verification.fieldNotes,
