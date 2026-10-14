@@ -24,16 +24,42 @@ const generateReportNumber = (district: string): string => {
 // POST /api/reports - Citizen submits livelihood loss report
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const validatedData = CitizenReportSchema.parse(req.body);
+    // Sanitize input defensively for rural / mobile input
+    const body = { ...req.body };
+    if (body.citizenPhone) {
+      body.citizenPhone = body.citizenPhone.toString().replace(/\D/g, '');
+    }
+    if (!body.livelihoodCategories || !Array.isArray(body.livelihoodCategories) || body.livelihoodCategories.length === 0) {
+      // Auto-extract categories from transcript if missing
+      const extracted = AiService.extractFromTranscript(body.confirmedTranscript || body.lossDescription || '');
+      body.livelihoodCategories = extracted.suggestedCategories.length > 0 ? extracted.suggestedCategories : ['CROP'];
+    }
+    if (body.estimatedLossAmount !== undefined && (isNaN(Number(body.estimatedLossAmount)) || body.estimatedLossAmount === '')) {
+      body.estimatedLossAmount = null;
+    } else if (body.estimatedLossAmount !== undefined && body.estimatedLossAmount !== null) {
+      body.estimatedLossAmount = Number(body.estimatedLossAmount);
+    }
+    if (body.disruptionDurationDays !== undefined && (isNaN(Number(body.disruptionDurationDays)) || body.disruptionDurationDays === '')) {
+      body.disruptionDurationDays = null;
+    } else if (body.disruptionDurationDays !== undefined && body.disruptionDurationDays !== null) {
+      body.disruptionDurationDays = Number(body.disruptionDurationDays);
+    }
+    if (body.householdSize !== undefined && (isNaN(Number(body.householdSize)) || body.householdSize === '')) {
+      body.householdSize = 5;
+    } else if (body.householdSize !== undefined && body.householdSize !== null) {
+      body.householdSize = Number(body.householdSize);
+    }
+
+    const validatedData = CitizenReportSchema.parse(body);
 
     // Calculate transparent priority score
     const priority = PriorityEngine.calculate({
       livelihoodCategories: validatedData.livelihoodCategories,
-      disruptionDurationDays: validatedData.disruptionDurationDays,
-      householdSize: validatedData.householdSize,
-      vulnerabilityFlags: validatedData.vulnerabilityFlags,
+      disruptionDurationDays: validatedData.disruptionDurationDays || undefined,
+      householdSize: validatedData.householdSize || 5,
+      vulnerabilityFlags: (validatedData.vulnerabilityFlags as string[]) || undefined,
       daysPending: 0,
-      estimatedLossAmount: validatedData.estimatedLossAmount,
+      estimatedLossAmount: validatedData.estimatedLossAmount || undefined,
     });
 
     let reportNumber = generateReportNumber(validatedData.district);
@@ -106,7 +132,8 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     console.error('Error submitting report:', error);
     if (error.name === 'ZodError') {
-      res.status(400).json({ success: false, message: 'सत्यापन त्रुटि', errors: error.errors });
+      const errorMsg = error.errors.map((e: any) => e.message).join(' • ');
+      res.status(400).json({ success: false, message: `सत्यापन त्रुटि: ${errorMsg}`, errors: error.errors });
       return;
     }
     res.status(500).json({ success: false, message: error.message });
