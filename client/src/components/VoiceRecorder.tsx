@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, AlertCircle, Edit3, Volume2, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, Edit3, Volume2, Sparkles, CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAccessibility } from '../context/AccessibilityContext.js';
 
@@ -22,157 +22,154 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualTextMode, setManualTextMode] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showNoSpeechModal, setShowNoSpeechModal] = useState(false);
 
   const recognitionRef = useRef<any>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
 
-  // Initialize Web Speech API if supported
   useEffect(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       setIsSpeechSupported(false);
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = language === 'en' ? 'en-IN' : 'hi-IN';
-
-      recognition.onresult = (event: any) => {
-        let currentText = '';
-        for (let i = 0; i < event.results.length; i++) {
-          currentText += event.results[i][0].transcript + ' ';
-        }
-        const trimmed = currentText.trim();
-        if (trimmed) {
-          transcriptRef.current = trimmed;
-          setTranscript(trimmed);
-          setErrorMessage(null);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition event:', event.error);
-        if (event.error === 'no-speech') {
-          setInfoMessage('आवाज की प्रतीक्षा है... कृपया माइक्रोफोन के समीप बोलें।');
-          return;
-        }
-
-        if (event.error === 'not-allowed') {
-          setErrorMessage('माइक्रोफोन अनुमति अस्वीकृत है। कृपया ब्राउज़र सेटिंग्स में माइक्रोफोन की अनुमति दें या नीचे उदाहरण चुनें/टाइप करें।');
-          return;
-        }
-
-        if (event.error === 'network') {
-          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा है। रिकॉर्डिंग जारी है — रोकने पर यह सीधे पुष्टि चरण पर ले जाएगा।');
-          return;
-        }
-
-        setInfoMessage('कृपया स्पष्ट बोलें अथवा नीचे दिए गए त्वरित विकल्पों में से चुनें।');
-      };
-
-      recognition.onend = () => {
-        // Keep active while recording
-      };
-
-      recognitionRef.current = recognition;
-    } catch (e) {
-      setIsSpeechSupported(false);
     }
 
     return () => {
       cleanupAudio();
     };
-  }, [language]);
+  }, []);
 
   const cleanupAudio = () => {
     if (recognitionRef.current) {
       try {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
         recognitionRef.current.abort();
       } catch (e) {}
-    }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
+      recognitionRef.current = null;
     }
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = () => {
+    cleanupAudio();
     setErrorMessage(null);
     setInfoMessage(null);
+    setShowNoSpeechModal(false);
     setTranscript('');
     transcriptRef.current = '';
     setRecordingSeconds(0);
 
-    // 1. Request actual hardware microphone via getUserMedia
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setIsSpeechSupported(false);
+      setErrorMessage('आपके ब्राउज़र में स्पीच रिकॉग्निशन उपलब्ध नहीं है। कृपया नीचे टाइप करें या विकल्प चुनें।');
+      setManualTextMode(true);
+      return;
+    }
+
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStreamRef.current = stream;
+      // Create a FRESH instance on every start to prevent stale driver state
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = language === 'en' ? 'en-IN' : 'hi-IN';
 
-        // Start real MediaRecorder
-        if (typeof MediaRecorder !== 'undefined') {
-          const mediaRecorder = new MediaRecorder(stream);
-          mediaRecorderRef.current = mediaRecorder;
-          mediaRecorder.start(250);
+      recognition.onstart = () => {
+        setIsRecording(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimText = '';
+        let finalText = '';
+
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            finalText += res[0].transcript + ' ';
+          } else {
+            interimText += res[0].transcript;
+          }
         }
-      }
-    } catch (micErr: any) {
-      console.warn('Microphone permission error:', micErr);
-      if (micErr.name === 'NotAllowedError' || micErr.name === 'PermissionDeniedError') {
-        setErrorMessage('माइक्रोफोन अनुमति अस्वीकृत की गई है। कृपया ब्राउज़र में अनुमति दें या नीचे दिए उदाहरण चुनें/टाइप करें।');
-        return;
-      }
-    }
 
-    // 2. Start Web Speech Recognition if available
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.lang = language === 'en' ? 'en-IN' : 'hi-IN';
-        recognitionRef.current.start();
-      } catch (err: any) {
-        console.warn('SpeechRecognition start error:', err);
-      }
-    }
+        const fullText = (finalText + interimText).trim();
+        if (fullText) {
+          transcriptRef.current = fullText;
+          setTranscript(fullText);
+          setErrorMessage(null);
+          setInfoMessage(null);
+        }
+      };
 
-    setIsRecording(true);
-    timerRef.current = setInterval(() => {
-      setRecordingSeconds((prev) => prev + 1);
-    }, 1000);
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+
+        if (event.error === 'no-speech') {
+          setInfoMessage('आवाज नहीं सुनाई दी। कृपया माइक्रोफोन के समीप थोड़ा तेज बोलें...');
+          return;
+        }
+
+        if (event.error === 'not-allowed') {
+          setErrorMessage('माइक्रोफोन अनुमति अस्वीकृत है। कृपया ब्राउज़र में माइक्रोफोन की अनुमति दें या नीचे टाइप करें।');
+          setIsRecording(false);
+          cleanupAudio();
+          return;
+        }
+
+        if (event.error === 'network') {
+          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा या बाधित है। यदि आपकी आवाज नहीं लिखी जा रही है, तो नीचे विकल्प चुनें या टाइप करें।');
+          return;
+        }
+      };
+
+      recognition.onend = () => {
+        // Only stop if timer is cleared
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+
+      setIsRecording(true);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.warn('Failed to start speech recognition:', err);
+      setErrorMessage('माइक्रोफोन चालू करने में समस्या आई। कृपया दोबारा प्रयास करें या नीचे टाइप करें।');
+      setIsRecording(false);
+    }
   };
 
   const stopRecording = () => {
     cleanupAudio();
     setIsRecording(false);
 
-    // Get captured speech, or if browser speech API was quiet, use authentic default loss statement
-    // so user is ALWAYS smoothly moved to Step 2 (Confirm & Edit)!
     const captured = (transcriptRef.current || transcript).trim();
     if (captured.length > 0) {
+      // User spoke and words were recognized!
       onTranscriptReady(captured, true);
     } else {
-      const defaultSpokenLoss =
-        language === 'bho'
-          ? 'कोसी नदी के पानी से 2 बीघा धान के फसल डूब गइल आ गाय के चारा नइखे।'
-          : 'कोसी नदी के पानी से हमारी 2 बीघा धान की फसल डूब गई है और मवेशियों के लिए चारे का संकट है।';
-      onTranscriptReady(defaultSpokenLoss, true);
+      // No words were recognized by the browser API.
+      // NEVER invent a fake statement! Show options to the user directly!
+      setShowNoSpeechModal(true);
     }
   };
 
   const handleSelectSample = (sampleText: string) => {
-    setTranscript(sampleText);
     cleanupAudio();
+    setTranscript(sampleText);
+    transcriptRef.current = sampleText;
     setIsRecording(false);
+    setShowNoSpeechModal(false);
     onTranscriptReady(sampleText, true);
   };
 
@@ -237,7 +234,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <div className="mt-4 flex flex-col items-center gap-2.5 w-full max-w-sm">
               <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
-                <span>{t('listening')} ({recordingSeconds}s)</span>
+                <span>सुन रहे हैं... कृपया बोलें ({recordingSeconds}s)</span>
               </div>
               <button
                 type="button"
@@ -254,23 +251,24 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             </p>
           )}
 
-          {/* Live Transcript Preview if captured */}
+          {/* LIVE Transcript Box (User sees their words appearing as they talk!) */}
           {transcript && (
-            <div className="mt-5 w-full p-4 bg-blue-50 border border-blue-200 rounded-xl text-left shadow-xs">
-              <div className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">
-                पहचाने गए शब्द (Recognised Speech):
+            <div className="mt-5 w-full p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-left shadow-xs space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                <span>पहचाने गए शब्द (Recognised Speech):</span>
+                {isRecording && <span className="text-red-600 animate-pulse">● रिकॉर्डिंग जारी</span>}
               </div>
-              <p className="text-base text-slate-800 font-medium leading-relaxed font-sans">
+              <p className="text-base sm:text-lg text-slate-900 font-bold leading-relaxed font-sans">
                 "{transcript}"
               </p>
               {!isRecording && (
-                <div className="mt-3 flex justify-end gap-2">
+                <div className="mt-3 flex justify-end">
                   <button
                     type="button"
                     onClick={() => onTranscriptReady(transcript, true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 shadow-xs flex items-center gap-1.5"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5"
                   >
-                    <span>हाँ, यही है (आगे बढ़ें)</span>
+                    <span>हाँ, यही नुकसान है (आगे बढ़ें)</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -287,8 +285,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           <textarea
             rows={4}
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            placeholder="उदा. कोसी नदी के पानी से हमारी 2 बीघा धान की फसल डूब गई और गाय के लिए सूखा चारा बिल्कुल नहीं बचा है..."
+            onChange={(e) => {
+              setTranscript(e.target.value);
+              transcriptRef.current = e.target.value;
+            }}
+            placeholder="उदा. हमारी 2 बीघा धान की फसल बाढ़ में डूब गई और मवेशियों के लिए चारा नहीं मिल रहा है..."
             className="w-full p-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-xs font-sans"
           />
           <div className="flex justify-between items-center">
@@ -328,8 +329,78 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </div>
       )}
 
+      {/* Fallback Dialog if Browser Did Not Capture Speech */}
+      {showNoSpeechModal && (
+        <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left space-y-3 w-full shadow-md">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">
+                आवाज के शब्द स्पष्ट नहीं हुए (No speech recognized)
+              </h3>
+              <p className="text-xs text-amber-800 mt-0.5">
+                ब्राउज़र स्पीच क्लाउड द्वारा कोई शब्द नहीं पहचाना जा सका। कृपया नीचे से अपनी क्षति का प्रकार चुनें या टाइप करें:
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => handleSelectSample('बाढ़ के पानी से धान की फसल डूब गई और मवेशियों के लिए चारा नहीं बचा है।')}
+              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
+            >
+              🌾 फसल एवं पशु चारा संकट
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectSample('किराना दुकान में पानी घुसने से सारा अनाज और राशन भीग कर खराब हो गया।')}
+              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
+            >
+              🏪 दुकान एवं भंडारित माल क्षति
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectSample('बाढ़ के कारण पिछले 10 दिनों से दैनिक मजदूरी का काम बिल्कुल बंद है।')}
+              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
+            >
+              🔨 दैनिक मजदूरी अवरोध
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectSample('सिंचाई का डीजल पंपसेट और पाइपलाइन बाढ़ के तेज बहाव में गाद में धंस गई है।')}
+              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
+            >
+              🚜 कृषि उपकरण / पम्पसेट क्षति
+            </button>
+          </div>
+
+          <div className="flex justify-between items-center pt-2 border-t border-amber-200 text-xs">
+            <button
+              type="button"
+              onClick={startRecording}
+              className="text-blue-700 font-bold hover:underline flex items-center gap-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>दोबारा बोलें (Try Speaking Again)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNoSpeechModal(false);
+                setManualTextMode(true);
+              }}
+              className="text-slate-700 font-bold hover:underline flex items-center gap-1"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>लिखकर बताएं (Type Instead)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Switch to typing toggle */}
-      {!manualTextMode && (
+      {!manualTextMode && !showNoSpeechModal && (
         <div className="mt-3">
           <button
             type="button"
@@ -342,7 +413,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </div>
       )}
 
-      {/* Authentic Demonstration Voice Prompts - 1-Click Tap */}
+      {/* 1-Click Tap Scenarios */}
       <div className="mt-6 pt-5 border-t border-slate-200 w-full text-left space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
