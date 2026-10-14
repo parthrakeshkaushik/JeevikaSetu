@@ -38,11 +38,8 @@ export const Dashboard: React.FC = () => {
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Filters
-  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
-    if (user?.jurisdictionType === 'STATE' || user?.role === 'SYSTEM_ADMIN') return 'ALL';
-    return user?.jurisdictionName || 'ALL';
-  });
+  // Filters - Default to ALL so administrators immediately see statewide citizen requests
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
   const [selectedBlock, setSelectedBlock] = useState<string>('ALL');
 
   useEffect(() => {
@@ -54,10 +51,13 @@ export const Dashboard: React.FC = () => {
     try {
       const distQuery = selectedDistrict !== 'ALL' ? selectedDistrict : undefined;
       const blockQuery = selectedBlock !== 'ALL' ? selectedBlock : undefined;
-      const reportParams: Record<string, string> = { limit: '6' };
-      if (selectedDistrict !== 'ALL') {
-        reportParams.district = selectedDistrict;
-      }
+      const reportParams: Record<string, string> = { 
+        limit: '6',
+        sortBy: 'newest',
+        district: selectedDistrict,
+        block: selectedBlock,
+      };
+
       const [dashRes, casesRes] = await Promise.all([
         api.getDashboardAnalytics(distQuery, blockQuery),
         api.getReports(reportParams),
@@ -303,8 +303,15 @@ export const Dashboard: React.FC = () => {
                     </Link>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-900">{c.citizenName}</div>
-                    <div className="text-[11px] text-slate-500">{c.village}, {c.block}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="font-semibold text-slate-900">{c.citizenName}</div>
+                      {c.status === 'SUBMITTED' && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                          🆕 नया
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500">{c.village}, {c.block} ({c.district})</div>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -10,6 +10,8 @@ import {
   ArrowUpRight,
   RefreshCw,
   SlidersHorizontal,
+  Volume2,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
@@ -18,34 +20,38 @@ import { api } from '../../api/client.js';
 
 export const CasesList: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [reports, setReports] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Filters
-  const [search, setSearch] = useState<string>('');
-  const [status, setStatus] = useState<string>('ALL');
-  const [district, setDistrict] = useState<string>('ALL');
-  const [block, setBlock] = useState<string>('ALL');
-  const [category, setCategory] = useState<string>('ALL');
-  const [priorityLevel, setPriorityLevel] = useState<string>('ALL');
-  const [assignedToMe, setAssignedToMe] = useState<boolean>(user?.role === 'VOLUNTEER');
+  // Filters - Read from URL if provided (e.g. from fast-track login) or default
+  const [search, setSearch] = useState<string>(searchParams.get('search') || '');
+  const [status, setStatus] = useState<string>(searchParams.get('status') || 'ALL');
+  const [district, setDistrict] = useState<string>(searchParams.get('district') || 'ALL');
+  const [block, setBlock] = useState<string>(searchParams.get('block') || 'ALL');
+  const [category, setCategory] = useState<string>(searchParams.get('category') || 'ALL');
+  const [priorityLevel, setPriorityLevel] = useState<string>(searchParams.get('priorityLevel') || 'ALL');
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
+  const [assignedToMe, setAssignedToMe] = useState<boolean>(false);
 
   useEffect(() => {
     loadCases();
-  }, [status, district, block, category, priorityLevel, assignedToMe]);
+  }, [status, district, block, category, priorityLevel, sortBy, assignedToMe]);
 
   const loadCases = async () => {
     setIsLoading(true);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = {
+        district,
+        block,
+        status,
+        category,
+        priorityLevel,
+        sortBy,
+      };
       if (search.trim()) params.search = search.trim();
-      if (status !== 'ALL') params.status = status;
-      if (district !== 'ALL') params.district = district;
-      if (block !== 'ALL') params.block = block;
-      if (category !== 'ALL') params.category = category;
-      if (priorityLevel !== 'ALL') params.priorityLevel = priorityLevel;
       if (assignedToMe) params.assignedToMe = 'true';
 
       const res = await api.getReports(params);
@@ -212,6 +218,16 @@ export const CasesList: React.FC = () => {
             <option value="FISHERIES">मत्स्य पालन (Fisheries)</option>
           </select>
 
+          {/* Sort By Filter */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-bold text-slate-800"
+          >
+            <option value="newest">⚡ नवीनतम प्राप्त (Newest First)</option>
+            <option value="priority">🔥 उच्चतम प्राथमिकता (High Priority)</option>
+          </select>
+
           {/* Assigned to me toggle for volunteers */}
           {user?.role === 'VOLUNTEER' && (
             <label className="flex items-center gap-2 p-2 border border-blue-200 bg-blue-50/70 rounded-lg cursor-pointer">
@@ -224,6 +240,35 @@ export const CasesList: React.FC = () => {
               <span className="font-semibold text-blue-900 text-xs">मेरे आवंटित कार्य</span>
             </label>
           )}
+        </div>
+
+        {/* Quick Workflow Status Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+          <span className="text-[11px] font-bold text-slate-500 mr-1">त्वरित फ़िल्टर:</span>
+          {[
+            { id: 'ALL', label: 'समस्त मामले (All Cases)' },
+            { id: 'SUBMITTED', label: '🆕 नए प्राप्त आवेदन (New Submissions)', highlight: true },
+            { id: 'ASSIGNED_FOR_VERIFICATION', label: 'सत्यापन हेतु आवंटित (Assigned)' },
+            { id: 'VERIFIED', label: 'सत्यापित (Verified)' },
+            { id: 'REFERRED_FOR_RECOVERY', label: 'पुनर्प्राप्ति योजना (Recovery)' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatus(tab.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                status === tab.id
+                  ? tab.highlight
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-blue-600 text-white shadow-xs'
+                  : tab.highlight
+                  ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -277,7 +322,23 @@ export const CasesList: React.FC = () => {
                         </Link>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900">{c.citizenName}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="font-semibold text-slate-900">{c.citizenName}</div>
+                          {c.status === 'SUBMITTED' && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                              🆕 नया
+                            </span>
+                          )}
+                          {c.audioSimulationUrl && (
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-semibold inline-flex items-center gap-0.5 border border-blue-200"
+                              title="नागरिक की ऑडियो रिकॉर्डिंग संलग्न है"
+                            >
+                              <Volume2 className="w-3 h-3 text-blue-600" />
+                              <span>ऑडियो</span>
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-slate-500">
                           {c.village}, {c.block} ({c.district})
                         </div>
@@ -331,7 +392,19 @@ export const CasesList: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm">{c.citizenName}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900 text-sm">{c.citizenName}</h3>
+                      {c.status === 'SUBMITTED' && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                          🆕 नया
+                        </span>
+                      )}
+                      {c.audioSimulationUrl && (
+                        <span className="p-1 rounded bg-blue-50 text-blue-700 text-[10px] inline-flex items-center gap-0.5 border border-blue-200">
+                          <Volume2 className="w-3 h-3 text-blue-600" />
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                       <MapPin className="w-3 h-3" />
                       {c.village}, {c.block} ({c.district})

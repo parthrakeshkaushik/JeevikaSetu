@@ -319,44 +319,63 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
       priorityLevel,
       search,
       assignedToMe,
+      sortBy = 'newest',
       page = '1',
       limit = '25',
     } = req.query;
 
     const whereClause: any = {};
 
-    // 1. Role-based jurisdiction scoping
+    // 1. Role-based jurisdiction scoping & Evaluation freedom
     if (user.role === ROLES.VOLUNTEER) {
       if (assignedToMe === 'true') {
         whereClause.assignedUserId = user.id;
-      } else if (user.jurisdictionName) {
+      } else if (district && district !== 'ALL') {
+        whereClause.district = district as string;
+      } else if (block && block !== 'ALL') {
+        whereClause.block = block as string;
+      } else if (!district && !block && user.jurisdictionName) {
         whereClause.panchayat = user.jurisdictionName;
-      } else {
-        whereClause.assignedUserId = user.id;
       }
-    } else if (user.role === ROLES.BDO) {
+    } else if ([ROLES.BDO, ROLES.SDM].includes(user.role as any)) {
+      if (district && district !== 'ALL') {
+        whereClause.district = district as string;
+      } else if (district === 'ALL') {
+        delete whereClause.district;
+      }
+
       if (block && block !== 'ALL') {
         whereClause.block = block as string;
-      } else if (user.jurisdictionName) {
-        whereClause.block = user.jurisdictionName;
-      }
-    } else if (user.role === ROLES.SDM) {
-      if (block && block !== 'ALL') {
-        whereClause.block = block as string;
-      } else if (user.jurisdictionName) {
+      } else if (block === 'ALL') {
+        delete whereClause.block;
+      } else if (!district && !block && user.jurisdictionName) {
         whereClause.block = user.jurisdictionName;
       }
     } else if ([ROLES.DM, ROLES.ADM, ROLES.DDC, ROLES.DPO].includes(user.role as any)) {
-      if (district === 'ALL') {
-        delete whereClause.district;
-      } else if (district) {
+      if (district && district !== 'ALL') {
         whereClause.district = district as string;
-      } else if (user.jurisdictionName && user.jurisdictionType !== 'STATE') {
+      } else if (district === 'ALL') {
+        delete whereClause.district;
+      } else if (!district && user.jurisdictionName && user.jurisdictionType !== 'STATE') {
         whereClause.district = user.jurisdictionName;
+      }
+
+      if (block && block !== 'ALL') {
+        whereClause.block = block as string;
+      } else if (block === 'ALL') {
+        delete whereClause.block;
       }
     } else if (user.jurisdictionType === 'STATE' || user.role === ROLES.SYSTEM_ADMIN) {
       if (district && district !== 'ALL') {
         whereClause.district = district as string;
+      } else if (district === 'ALL') {
+        delete whereClause.district;
+      }
+
+      if (block && block !== 'ALL') {
+        whereClause.block = block as string;
+      } else if (block === 'ALL') {
+        delete whereClause.block;
       }
     }
 
@@ -371,7 +390,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     }
     if (block && block !== 'ALL') {
       whereClause.block = block as string;
-    } else if (block === 'ALL' && [ROLES.DM, ROLES.ADM, ROLES.DDC, ROLES.DPO, ROLES.SYSTEM_ADMIN].includes(user.role as any)) {
+    } else if (block === 'ALL') {
       delete whereClause.block;
     }
     if (priorityLevel && priorityLevel !== 'ALL') {
@@ -397,6 +416,12 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     const limitNum = parseInt(limit as string) || 25;
     const skip = (pageNum - 1) * limitNum;
 
+    // Default: Newest submissions first so incoming reports from website appear immediately!
+    let orderByClause: any = [{ submittedAt: 'desc' }, { priorityScore: 'desc' }];
+    if (sortBy === 'priority') {
+      orderByClause = [{ priorityScore: 'desc' }, { submittedAt: 'desc' }];
+    }
+
     const [reports, totalCount] = await Promise.all([
       prisma.livelihoodReport.findMany({
         where: whereClause,
@@ -410,7 +435,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
             select: { outcome: true, verifiedRole: true, createdAt: true },
           },
         },
-        orderBy: [{ priorityScore: 'desc' }, { submittedAt: 'desc' }],
+        orderBy: orderByClause,
         skip,
         take: limitNum,
       }),
