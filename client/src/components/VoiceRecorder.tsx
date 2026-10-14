@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, AlertCircle, Edit3, Volume2, Sparkles, CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, Edit3, CheckCircle2, ArrowRight, RefreshCw, Send, Radio, Volume2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAccessibility } from '../context/AccessibilityContext.js';
 
@@ -16,6 +16,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const { speakText } = useAccessibility();
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [soundDetected, setSoundDetected] = useState(false);
   const [transcript, setTranscript] = useState(initialTranscript);
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -23,9 +25,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const [manualTextMode, setManualTextMode] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showNoSpeechModal, setShowNoSpeechModal] = useState(false);
+  const [fallbackCustomText, setFallbackCustomText] = useState('');
 
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const pendingTimerRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
 
   useEffect(() => {
@@ -42,6 +46,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   }, []);
 
   const cleanupAudio = () => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.onresult = null;
@@ -55,17 +63,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    setIsFinalizing(false);
   };
 
-  const startRecording = () => {
-    cleanupAudio();
-    setErrorMessage(null);
-    setInfoMessage(null);
-    setShowNoSpeechModal(false);
-    setTranscript('');
-    transcriptRef.current = '';
-    setRecordingSeconds(0);
-
+  const startActualRecognition = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -77,7 +78,6 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
 
     try {
-      // Create a FRESH instance on every start to prevent stale driver state
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -86,6 +86,19 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       recognition.onstart = () => {
         setIsRecording(true);
+        setIsFinalizing(false);
+      };
+
+      recognition.onaudiostart = () => {
+        setSoundDetected(true);
+      };
+
+      recognition.onsoundstart = () => {
+        setSoundDetected(true);
+      };
+
+      recognition.onspeechstart = () => {
+        setSoundDetected(true);
       };
 
       recognition.onresult = (event: any) => {
@@ -111,10 +124,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
+        console.warn('Speech recognition error event:', event.error);
 
         if (event.error === 'no-speech') {
-          setInfoMessage('आवाज नहीं सुनाई दी। कृपया माइक्रोफोन के समीप थोड़ा तेज बोलें...');
+          setInfoMessage('आवाज नहीं पहचानी जा सकी। कृपया माइक्रोफोन के समीप थोड़ा तेज बोलें...');
           return;
         }
 
@@ -126,13 +139,13 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         }
 
         if (event.error === 'network') {
-          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा या बाधित है। यदि आपकी आवाज नहीं लिखी जा रही है, तो नीचे विकल्प चुनें या टाइप करें।');
+          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा है। यदि आपकी आवाज नहीं लिखी जा रही है, तो नीचे विकल्प चुनें या टाइप करें।');
           return;
         }
       };
 
       recognition.onend = () => {
-        // Only stop if timer is cleared
+        // Handled in stopRecording & finalizer
       };
 
       recognitionRef.current = recognition;
@@ -149,19 +162,80 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
-  const stopRecording = () => {
+  const startRecording = () => {
     cleanupAudio();
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setShowNoSpeechModal(false);
+    setTranscript('');
+    transcriptRef.current = '';
+    setRecordingSeconds(0);
+    setSoundDetected(false);
+
+    // Request audio permission first to guarantee Chrome opens the mic properly
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          // Release immediate audio stream so Web Speech API has exclusive access
+          stream.getTracks().forEach((track) => track.stop());
+          startActualRecognition();
+        })
+        .catch((err) => {
+          console.warn('Microphone permission check failed:', err);
+          // Fallback to direct recognition attempt
+          startActualRecognition();
+        });
+    } else {
+      startActualRecognition();
+    }
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const currentCaptured = (transcriptRef.current || transcript).trim();
+    if (currentCaptured.length > 0) {
+      // User spoke and words are already in state!
+      cleanupAudio();
+      setIsRecording(false);
+      onTranscriptReady(currentCaptured, true);
+      return;
+    }
+
+    // No text yet; gracefully flush recognition pipeline (stop, not abort)
+    setIsFinalizing(true);
     setIsRecording(false);
 
-    const captured = (transcriptRef.current || transcript).trim();
-    if (captured.length > 0) {
-      // User spoke and words were recognized!
-      onTranscriptReady(captured, true);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        cleanupAudio();
+        setShowNoSpeechModal(true);
+        return;
+      }
     } else {
-      // No words were recognized by the browser API.
-      // NEVER invent a fake statement! Show options to the user directly!
       setShowNoSpeechModal(true);
+      return;
     }
+
+    // Give 1.2s for Google Speech engine to finish the last buffer
+    pendingTimerRef.current = setTimeout(() => {
+      const finalWords = (transcriptRef.current || transcript).trim();
+      cleanupAudio();
+      setIsRecording(false);
+      setIsFinalizing(false);
+
+      if (finalWords.length > 0) {
+        onTranscriptReady(finalWords, true);
+      } else {
+        setShowNoSpeechModal(true);
+      }
+    }, 1200);
   };
 
   const handleSelectSample = (sampleText: string) => {
@@ -174,8 +248,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   const handleManualSubmit = () => {
-    if (transcript.trim().length >= 2) {
-      onTranscriptReady(transcript.trim(), false);
+    const textToSubmit = (fallbackCustomText || transcript).trim();
+    if (textToSubmit.length >= 2) {
+      cleanupAudio();
+      setShowNoSpeechModal(false);
+      onTranscriptReady(textToSubmit, false);
     } else {
       setErrorMessage('कृपया नुकसान का विवरण लिखें');
     }
@@ -207,10 +284,13 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
             <button
               type="button"
+              disabled={isFinalizing}
               onClick={isRecording ? stopRecording : startRecording}
               className={`relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all transform active:scale-95 focus:outline-none ${
                 isRecording
                   ? 'bg-red-600 text-white shadow-red-200 animate-pulse'
+                  : isFinalizing
+                  ? 'bg-amber-600 text-white shadow-amber-200 cursor-wait'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
               }`}
               aria-label={isRecording ? t('stopSpeaking') : t('micInstruction')}
@@ -219,6 +299,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 <>
                   <MicOff className="w-10 h-10 sm:w-12 sm:h-12" />
                   <span className="text-xs font-bold mt-1">रोकें (Stop)</span>
+                </>
+              ) : isFinalizing ? (
+                <>
+                  <RefreshCw className="w-10 h-10 sm:w-12 sm:h-12 animate-spin" />
+                  <span className="text-xs font-bold mt-1">प्रतीक्षा करें</span>
                 </>
               ) : (
                 <>
@@ -234,7 +319,9 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <div className="mt-4 flex flex-col items-center gap-2.5 w-full max-w-sm">
               <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
-                <span>सुन रहे हैं... कृपया बोलें ({recordingSeconds}s)</span>
+                <span>
+                  {soundDetected ? '🔊 आवाज प्राप्त हो रही है...' : 'सुन रहे हैं... कृपया बोलें'} ({recordingSeconds}s)
+                </span>
               </div>
               <button
                 type="button"
@@ -245,13 +332,18 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 <span>बोलना समाप्त ➔ विवरण जांचें (Done ➔ Step 2)</span>
               </button>
             </div>
+          ) : isFinalizing ? (
+            <div className="mt-4 flex items-center justify-center gap-2 text-amber-700 font-bold text-sm bg-amber-50 px-4 py-2 rounded-xl border border-amber-200">
+              <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
+              <span>आवाज के शब्दों की पुष्टि की जा रही है...</span>
+            </div>
           ) : (
             <p className="mt-3 text-xs text-slate-500 font-medium">
               भाषा: {language === 'bho' ? 'भोजपुरी / हिन्दी' : language === 'en' ? 'English' : 'हिन्दी'}
             </p>
           )}
 
-          {/* LIVE Transcript Box (User sees their words appearing as they talk!) */}
+          {/* Real-time word feedback box */}
           {transcript && (
             <div className="mt-5 w-full p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-left shadow-xs space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-emerald-800 uppercase tracking-wide">
@@ -277,11 +369,26 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           )}
         </div>
       ) : (
-        /* Manual Text Typing Mode */
-        <div className="w-full text-left my-3 space-y-3">
-          <label className="block text-xs sm:text-sm font-bold text-slate-800">
-            नुकसान का विवरण विस्तार से लिखें:
-          </label>
+        /* Manual Text Entry Mode */
+        <div className="w-full my-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <Edit3 className="w-4 h-4 text-blue-600" />
+              <span>अपना नुकसान विस्तार से लिखें:</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setManualTextMode(false);
+                setShowNoSpeechModal(false);
+              }}
+              className="text-xs text-blue-600 hover:underline font-bold flex items-center gap-1"
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>आवाज से बोलें (Use Voice)</span>
+            </button>
+          </div>
+
           <textarea
             rows={4}
             value={transcript}
@@ -293,30 +400,26 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             className="w-full p-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-xs font-sans"
           />
           <div className="flex justify-between items-center">
+            <span className="text-xs text-slate-500">
+              {transcript.length > 0 ? `${transcript.length} अक्षर` : 'कम से कम 2 शब्द लिखें'}
+            </span>
             <button
               type="button"
-              onClick={() => setManualTextMode(false)}
-              className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
-            >
-              <Mic className="w-3.5 h-3.5" /> माइक द्वारा बोलें
-            </button>
-            <button
-              type="button"
-              onClick={handleManualSubmit}
               disabled={transcript.trim().length < 2}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 shadow-xs flex items-center gap-1.5"
+              onClick={handleManualSubmit}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
             >
-              <span>आगे बढ़ें (Next)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>आगे बढ़ें (Proceed)</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Helpful Info or Notice */}
+      {/* Info Message */}
       {infoMessage && (
         <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs flex items-start gap-2 text-left">
-          <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+          <Volume2 className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
           <span>{infoMessage}</span>
         </div>
       )}
@@ -331,55 +434,91 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       {/* Fallback Dialog if Browser Did Not Capture Speech */}
       {showNoSpeechModal && (
-        <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left space-y-3 w-full shadow-md">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="mt-4 p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left space-y-4 w-full shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-bold text-amber-900">
+              <h3 className="text-base font-extrabold text-amber-950">
                 आवाज के शब्द स्पष्ट नहीं हुए (No speech recognized)
               </h3>
-              <p className="text-xs text-amber-800 mt-0.5">
-                ब्राउज़र स्पीच क्लाउड द्वारा कोई शब्द नहीं पहचाना जा सका। कृपया नीचे से अपनी क्षति का प्रकार चुनें या टाइप करें:
+              <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+                माइक्रोफ़ोन या नेटवर्क से आवाज के शब्द प्राप्त नहीं हुए। आप नीचे दिए गए <strong>4 विकल्पों में से किसी एक पर टैप करके तुरंत आगे बढ़ सकते हैं</strong>, या अपना नुकसान लिखकर जमा कर सकते हैं:
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleSelectSample('बाढ़ के पानी से धान की फसल डूब गई और मवेशियों के लिए चारा नहीं बचा है।')}
-              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
-            >
-              🌾 फसल एवं पशु चारा संकट
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectSample('किराना दुकान में पानी घुसने से सारा अनाज और राशन भीग कर खराब हो गया।')}
-              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
-            >
-              🏪 दुकान एवं भंडारित माल क्षति
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectSample('बाढ़ के कारण पिछले 10 दिनों से दैनिक मजदूरी का काम बिल्कुल बंद है।')}
-              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
-            >
-              🔨 दैनिक मजदूरी अवरोध
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectSample('सिंचाई का डीजल पंपसेट और पाइपलाइन बाढ़ के तेज बहाव में गाद में धंस गई है।')}
-              className="p-2.5 bg-white hover:bg-amber-100 border border-amber-200 rounded-lg text-xs text-left font-semibold text-slate-800 transition-colors"
-            >
-              🚜 कृषि उपकरण / पम्पसेट क्षति
-            </button>
+          {/* 4 Quick Pick Scenarios inside the modal */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+              १-क्लिक में नुकसान का प्रकार चुनें (1-Tap Select):
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleSelectSample('बाढ़ के पानी से धान की फसल डूब गई और मवेशियों के लिए चारा नहीं बचा है।')}
+                className="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs text-left font-bold text-slate-900 transition-all shadow-xs flex items-center justify-between group"
+              >
+                <span>🌾 फसल एवं पशु चारा संकट</span>
+                <span className="text-blue-600 text-xs group-hover:translate-x-0.5 transition-transform">चुनें →</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectSample('किराना दुकान में पानी घुसने से सारा अनाज और राशन भीग कर खराब हो गया।')}
+                className="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs text-left font-bold text-slate-900 transition-all shadow-xs flex items-center justify-between group"
+              >
+                <span>🏪 दुकान एवं भंडारित माल क्षति</span>
+                <span className="text-blue-600 text-xs group-hover:translate-x-0.5 transition-transform">चुनें →</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectSample('बाढ़ के कारण पिछले 10 दिनों से दैनिक मजदूरी का काम बिल्कुल बंद है।')}
+                className="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs text-left font-bold text-slate-900 transition-all shadow-xs flex items-center justify-between group"
+              >
+                <span>🔨 दैनिक मजदूरी अवरोध</span>
+                <span className="text-blue-600 text-xs group-hover:translate-x-0.5 transition-transform">चुनें →</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectSample('सिंचाई का डीजल पंपसेट और पाइपलाइन बाढ़ के तेज बहाव में गाद में धंस गई है।')}
+                className="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs text-left font-bold text-slate-900 transition-all shadow-xs flex items-center justify-between group"
+              >
+                <span>🚜 कृषि उपकरण / पम्पसेट क्षति</span>
+                <span className="text-blue-600 text-xs group-hover:translate-x-0.5 transition-transform">चुनें →</span>
+              </button>
+            </div>
           </div>
 
+          {/* Quick Direct Text Input right inside the modal */}
+          <div className="pt-2 border-t border-amber-200">
+            <label className="text-xs font-bold text-slate-800 block mb-1">
+              या यहाँ अपना नुकसान संक्षेप में लिखें:
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={fallbackCustomText}
+                onChange={(e) => setFallbackCustomText(e.target.value)}
+                placeholder="उदा. हमारी 2 गाय बाढ़ में बह गईं और मकान की दीवार गिर गई..."
+                className="flex-1 p-2.5 text-xs border border-amber-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                disabled={fallbackCustomText.trim().length < 2}
+                onClick={handleManualSubmit}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1"
+              >
+                <span>आगे बढ़ें</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Try speaking again control */}
           <div className="flex justify-between items-center pt-2 border-t border-amber-200 text-xs">
             <button
               type="button"
               onClick={startRecording}
-              className="text-blue-700 font-bold hover:underline flex items-center gap-1"
+              className="text-blue-700 font-bold hover:underline flex items-center gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>दोबारा बोलें (Try Speaking Again)</span>
@@ -393,7 +532,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               className="text-slate-700 font-bold hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>लिखकर बताएं (Type Instead)</span>
+              <span>विस्तृत फॉर्म में लिखें (Full Typing Mode)</span>
             </button>
           </div>
         </div>
@@ -413,7 +552,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </div>
       )}
 
-      {/* 1-Click Tap Scenarios */}
+      {/* 1-Click Tap Scenarios on main screen */}
       <div className="mt-6 pt-5 border-t border-slate-200 w-full text-left space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
