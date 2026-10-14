@@ -1,13 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Waves, Shield, Sun, Moon, Type, Globe, Volume2 } from 'lucide-react';
+import { Waves, Shield, Sun, Moon, Type, Globe, Volume2, LogOut, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAccessibility } from '../context/AccessibilityContext.js';
+import { useCitizenAuth } from '../context/CitizenAuthContext.js';
 import { Language } from '../i18n/index.js';
 
 export const CitizenHeader: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { highContrast, toggleHighContrast, textSize, setTextSize, isSpeaking, stopSpeaking } = useAccessibility();
+  const { citizen, isCitizenAuthenticated, logoutCitizen } = useCitizenAuth();
   const location = useLocation();
 
   const handleTextSizeCycle = () => {
@@ -105,6 +107,41 @@ export const CitizenHeader: React.FC = () => {
               <option value="en">English</option>
             </select>
           </div>
+
+          {/* Logged in Citizen Profile & Quick Sign Out */}
+          {isCitizenAuthenticated && citizen && (
+            <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-700">
+              <div
+                className="flex items-center gap-1.5 bg-blue-50/80 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-lg px-2 py-1 max-w-[130px] sm:max-w-[170px]"
+                title={`लॉगिन: ${citizen.fullName} (${citizen.email})`}
+              >
+                {citizen.avatarUrl ? (
+                  <img
+                    src={citizen.avatarUrl}
+                    alt={citizen.fullName}
+                    className="w-4 h-4 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-blue-600 text-white font-bold text-[9px] flex items-center justify-center flex-shrink-0">
+                    {(citizen.fullName || 'N')[0]}
+                  </div>
+                )}
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {citizen.fullName.split(' ')[0]}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={logoutCitizen}
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                title="लॉगआउट करें (Sign Out)"
+                aria-label="Citizen Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Administrative Portal Link (Discreet) */}
           <Link

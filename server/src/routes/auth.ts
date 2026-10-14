@@ -75,6 +75,69 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// POST /api/auth/citizen-google-login
+// 1-Click Google / Gmail persistent authentication for Bihar residents
+router.post('/citizen-google-login', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, fullName, avatarUrl, phone } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({
+        success: false,
+        message: 'Gmail आईडी आवश्यक है / Gmail is required',
+      });
+      return;
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = (fullName && fullName.trim()) || cleanEmail.split('@')[0] || 'नागरिक (Resident)';
+    const cleanPhone = phone ? phone.toString().replace(/\D/g, '') : '9876543210';
+
+    // Find or create citizen user in database
+    let user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          passwordHash: 'GOOGLE_OAUTH_CITIZEN',
+          fullName: cleanName,
+          phone: cleanPhone,
+          role: 'CITIZEN',
+          department: 'Civilian',
+          jurisdictionType: 'DISTRICT',
+          jurisdictionName: 'Supaul',
+          isActive: true,
+        },
+      });
+    }
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone || cleanPhone,
+      role: 'CITIZEN',
+      avatarUrl: avatarUrl || null,
+      jurisdictionName: user.jurisdictionName || 'Supaul',
+    };
+
+    // Long-lived token (365 days) ensuring citizens stay logged in seamlessly
+    const token = jwt.sign(payload, CONFIG.JWT_SECRET, { expiresIn: '365d' });
+
+    res.json({
+      success: true,
+      token,
+      user: payload,
+    });
+  } catch (error: any) {
+    console.error('Citizen Google login error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // GET /api/auth/me
 router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   res.json({

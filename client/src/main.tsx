@@ -5,6 +5,7 @@ import App from './App.js';
 import { LanguageProvider } from './context/LanguageContext.js';
 import { AccessibilityProvider } from './context/AccessibilityContext.js';
 import { AuthProvider } from './context/AuthContext.js';
+import { CitizenAuthProvider } from './context/CitizenAuthContext.js';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <LanguageProvider>
         <AccessibilityProvider>
           <AuthProvider>
-            <App />
+            <CitizenAuthProvider>
+              <App />
+            </CitizenAuthProvider>
           </AuthProvider>
         </AccessibilityProvider>
       </LanguageProvider>

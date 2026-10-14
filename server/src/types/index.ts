@@ -20,6 +20,7 @@ export interface AuthenticatedRequest extends Request {
 export const CitizenReportSchema = z.object({
   citizenName: z.string().min(1, 'कृपया अपना नाम दर्ज करें / Name is required'),
   citizenPhone: z.string().min(7, 'कृपया वैध मोबाइल नंबर दर्ज करें (Valid phone number required)'),
+  citizenEmail: z.string().nullable().optional(),
   preferredLanguage: z.enum(['hi', 'bho', 'en']).default('hi'),
   isVoiceReport: z.boolean().default(false),
   rawTranscript: z.string().nullable().optional(),

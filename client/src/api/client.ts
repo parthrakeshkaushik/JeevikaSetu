@@ -4,7 +4,7 @@ const getHeaders = (token?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  const effectiveToken = token || localStorage.getItem('jeevikasetu_token');
+  const effectiveToken = token || localStorage.getItem('jeevikasetu_token') || localStorage.getItem('jeevikasetu_citizen_token');
   if (effectiveToken) {
     headers['Authorization'] = `Bearer ${effectiveToken}`;
   }
@@ -12,11 +12,31 @@ const getHeaders = (token?: string | null): Record<string, string> => {
 };
 
 export const api = {
-  // Public citizen actions
+  // Public citizen actions & authentication
+  async citizenGoogleLogin(data: { email: string; fullName?: string; avatarUrl?: string; phone?: string }) {
+    const res = await fetch('/api/auth/citizen-google-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async getMyReports(email?: string, phone?: string) {
+    const params = new URLSearchParams();
+    if (email) params.append('email', email);
+    if (phone) params.append('phone', phone);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`/api/reports/my-reports${qs}`, {
+      headers: getHeaders(),
+    });
+    return res.json();
+  },
+
   async submitReport(data: any) {
     const res = await fetch('/api/reports', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return res.json();

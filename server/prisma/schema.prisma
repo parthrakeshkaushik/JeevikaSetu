@@ -57,6 +57,7 @@ model LivelihoodReport {
   // Citizen basic details
   citizenName          String
   citizenPhone         String   // 10 digits
+  citizenEmail         String?  // Citizen Gmail / Email
   preferredLanguage    String   @default("hi") // "hi", "bho", "en"
   
   // Voice & transcription details
@@ -118,6 +119,7 @@ model LivelihoodReport {
   @@index([status])
   @@index([district, block])
   @@index([citizenPhone])
+  @@index([citizenEmail])
   @@index([priorityLevel])
 }
 

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import prisma from '../db.js';
 import { CitizenReportSchema, StatusUpdateSchema, EscalationSubmissionSchema, FollowUpActionSchema, AuthenticatedRequest } from '../types/index.js';
 import { PriorityEngine } from '../services/priorityEngine.js';
@@ -6,7 +7,7 @@ import { WorkflowEngine } from '../services/workflowEngine.js';
 import { AuditService } from '../services/auditService.js';
 import { AiService } from '../services/aiService.js';
 import { authenticateToken, requireRoles } from '../middleware/auth.js';
-import { REPORT_STATUS, ROLES, ReportStatusType } from '../config.js';
+import { REPORT_STATUS, ROLES, ReportStatusType, CONFIG } from '../config.js';
 
 const router = Router();
 
@@ -84,6 +85,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
         reportNumber,
         citizenName: validatedData.citizenName.trim(),
         citizenPhone: validatedData.citizenPhone.trim(),
+        citizenEmail: validatedData.citizenEmail ? validatedData.citizenEmail.trim().toLowerCase() : (body.citizenEmail ? String(body.citizenEmail).trim().toLowerCase() : null),
         preferredLanguage: validatedData.preferredLanguage,
         isVoiceReport: validatedData.isVoiceReport,
         rawTranscript: validatedData.rawTranscript || null,
@@ -299,6 +301,255 @@ router.get('/track', async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/reports/my-reports
+// Lists all flood relief & livelihood requests made by the logged-in citizen
+// Includes transparent status updates, forwarding destination (office/dept/officer), and statistics
+router.get('/my-reports', async (req: Request, res: Response): Promise<void> => {
+  try {
+    let email = (req.query.email as string)?.trim().toLowerCase();
+    let phone = (req.query.phone as string)?.trim();
+
+    // Check Authorization Bearer token if present
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded: any = jwt.verify(token, CONFIG.JWT_SECRET);
+        if (decoded?.email) email = decoded.email.toLowerCase().trim();
+        if (decoded?.phone) phone = decoded.phone;
+      } catch (err) {
+        // Continue with query params if token expired or invalid
+      }
+    }
+
+    if (!email && !phone) {
+      res.status(400).json({
+        success: false,
+        message: 'ईमेल अथवा फोन नंबर आवश्यक है / Email or phone is required',
+      });
+      return;
+    }
+
+    const orConditions: any[] = [];
+    if (email) {
+      orConditions.push({ citizenEmail: email });
+    }
+    if (phone) {
+      const cleanP = phone.replace(/\D/g, '');
+      if (cleanP.length >= 7) {
+        orConditions.push({ citizenPhone: cleanP });
+        orConditions.push({ citizenPhone: { contains: cleanP.slice(-10) } });
+      }
+    }
+
+    let reports = await prisma.livelihoodReport.findMany({
+      where: { OR: orConditions },
+      include: {
+        assignedToUser: {
+          select: {
+            fullName: true,
+            role: true,
+            department: true,
+            jurisdictionName: true,
+          },
+        },
+        verificationRecords: {
+          select: {
+            outcome: true,
+            fieldObservations: true,
+            recommendedAction: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        followUpActions: {
+          select: {
+            programmeType: true,
+            assignedDepartment: true,
+            actionDetails: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    // Helper: Determine exact Forwarded-To Office, Department & Stage for the citizen
+    const formatForwardingInfo = (report: any) => {
+      let cats: string[] = [];
+      try {
+        cats = JSON.parse(report.livelihoodCategories || '[]');
+      } catch {
+        cats = ['CROP'];
+      }
+
+      let primaryDept = 'आपदा प्रबंधन एवं सामान्य राहत कोषांग';
+      let targetScheme = 'अस्थायी आश्रय एवं राशन किट वितरण';
+
+      if (cats.includes('CROP')) {
+        primaryDept = 'कृषि विभाग (Department of Agriculture, Bihar)';
+        targetScheme = 'आकस्मिक बीज मिनीकिट एवं फसल क्षति इनपुट अनुदान (In-put Subsidy)';
+      } else if (cats.includes('LIVESTOCK')) {
+        primaryDept = 'पशु एवं मत्स्य संसाधन विभाग (Animal Husbandry Dept)';
+        targetScheme = 'निःशुल्क पशु चारा पैकेट आपूर्ति एवं सचल पशु चिकित्सा शिविर';
+      } else if (cats.includes('FISHERIES')) {
+        primaryDept = 'मत्स्य पालन निदेशालय (Fisheries Directorate)';
+        targetScheme = 'मत्स्य पालक राहत व पोखरा जीर्णोद्धार सहायता कोष';
+      } else if (cats.includes('WAGE_LABOR') || cats.includes('SHOP_BUSINESS')) {
+        primaryDept = 'ग्रामीण विकास विभाग / जीविका (JEEViKA SHG)';
+        targetScheme = 'सतत जीविकोपार्जन योजना (SJY) एवं आपातकालीन आजीविका कोष';
+      }
+
+      const assignedOfficer = report.assignedToUser
+        ? `${report.assignedToUser.fullName} (${report.assignedToUser.role})`
+        : 'प्रखंड आपदा राहत समन्वय दल (Block Relief Task Force)';
+
+      return {
+        officeName: `प्रखंड विकास पदाधिकारी (BDO) कार्यालय, ${report.block || 'निर्मली'}`,
+        districtOffice: `जिला पदाधिकारी (DM) आपदा नियंत्रण कक्ष, ${report.district || 'सुपौल'}`,
+        department: primaryDept,
+        scheme: targetScheme,
+        assignedOfficer,
+        currentStage:
+          report.status === 'SUBMITTED'
+            ? 'प्रखंड स्तर पर प्राथमिक समीक्षा हेतु प्राप्त'
+            : report.status === 'VERIFICATION_IN_PROGRESS' || report.status === 'ASSIGNED_FOR_VERIFICATION'
+            ? 'स्थानीय स्वयंसेवक दल द्वारा स्थल निरीक्षण प्रगति पर'
+            : report.status === 'VERIFIED'
+            ? 'क्षति सत्यापित - पुनर्प्राप्ति योजना अग्रेषण हेतु अनुमोदित'
+            : report.status === 'REFERRED_FOR_RECOVERY'
+            ? `${primaryDept} को सहायता आवंटन हेतु प्रेषित`
+            : 'प्रशासनिक कार्रवाई दर्ज',
+      };
+    };
+
+    const statusMessages: Record<string, { hi: string; bho: string; en: string }> = {
+      SUBMITTED: {
+        hi: 'आपकी रिपोर्ट प्राप्त हो गई है और प्राथमिक समीक्षा की प्रतीक्षा में है।',
+        bho: 'रउरा रिपोर्ट मिल गइल बा, जांच के इंतजार में बा।',
+        en: 'Your report has been received and is awaiting initial review.',
+      },
+      AWAITING_REVIEW: {
+        hi: 'प्रखंड प्रशासन द्वारा रिपोर्ट की समीक्षा की जा रही है।',
+        bho: 'प्रखंड में रिपोर्ट के समीक्षा हो रहल बा।',
+        en: 'Report is under initial administrative review.',
+      },
+      ASSIGNED_FOR_VERIFICATION: {
+        hi: 'आपके क्षेत्र के ऑन-ग्राउंड स्वयंसेवक को भौतिक सत्यापन के लिए आवंटित किया गया है।',
+        bho: 'जांच खातिर स्वयंसेवक के भेजल गइल बा।',
+        en: 'Assigned to field volunteer for on-ground verification.',
+      },
+      VERIFICATION_IN_PROGRESS: {
+        hi: 'स्वयंसेवक द्वारा भौतिक क्षति सत्यापन का कार्य प्रगति पर है।',
+        bho: 'नुकसानी के जांच चल रहल बा।',
+        en: 'Field verification is currently in progress.',
+      },
+      VERIFIED: {
+        hi: 'भौतिक क्षति सत्यापन पूर्ण हो गया है और रिपोर्ट सत्यापित कर ली गई है।',
+        bho: 'जांच पूरा हो गइल बा, रिपोर्ट सही पावल गइल।',
+        en: 'Field verification completed and loss verified.',
+      },
+      PARTIALLY_VERIFIED: {
+        hi: 'भौतिक सत्यापन में आंशिक क्षति की पुष्टि हुई है।',
+        bho: 'आधा-अधूरा नुकसानी के पुष्टि भइल बा।',
+        en: 'Partially verified upon physical inspection.',
+      },
+      UNABLE_TO_VERIFY: {
+        hi: 'वर्तमान जानकारी से सत्यापन संभव नहीं हो सका। कृपया नजदीकी सहायता केंद्र से संपर्क करें।',
+        bho: 'जांच ना हो पावल, नजदीकी केंद्र से संपर्क करीं।',
+        en: 'Unable to verify with available details.',
+      },
+      ADDITIONAL_INFO_REQUIRED: {
+        hi: 'प्रशासन को अतिरिक्त जानकारी या स्पष्टीकरण की आवश्यकता है।',
+        bho: 'अउर जानकारी के जरूरत बा।',
+        en: 'Additional information required from citizen.',
+      },
+      REFERRED_FOR_RECOVERY: {
+        hi: 'आपकी रिपोर्ट को आजीविका पुनर्प्राप्ति योजना के लिए अग्रसारित किया गया है।',
+        bho: 'जीविका/कृषि सहायता खातिर आगे बढ़ावल गइल बा।',
+        en: 'Referred to appropriate recovery scheme.',
+      },
+      FOLLOWUP_IN_PROGRESS: {
+        hi: 'विभागीय सहायता व पुनर्प्राप्ति की कार्रवाई चल रही है।',
+        bho: 'सरकारी मदद के काम चालू बा।',
+        en: 'Departmental follow-up action is in progress.',
+      },
+      ACTION_RECORDED: {
+        hi: 'पुनर्प्राप्ति सहायता की कार्रवाई आधिकारिक रूप से दर्ज कर ली गई है।',
+        bho: 'मदद के कार्रवाई दर्ज हो गइल बा।',
+        en: 'Recovery action successfully recorded.',
+      },
+      CLOSED: {
+        hi: 'इस रिपोर्ट पर आवश्यक प्रशासनिक प्रक्रिया पूर्ण कर इसे बंद कर दिया गया है।',
+        bho: 'कार्रवाई पूरा हो गइल बा।',
+        en: 'Case closed after due process.',
+      },
+      REOPENED: {
+        hi: 'अतिरिक्त साक्ष्य के आधार पर रिपोर्ट पुनः खोली गई है।',
+        bho: 'रिपोर्ट फेर से खोलल गइल बा।',
+        en: 'Case reopened for re-assessment.',
+      },
+    };
+
+    const formattedReports = reports.map((r) => {
+      let categories: string[] = [];
+      try {
+        categories = JSON.parse(r.livelihoodCategories || '[]');
+      } catch {
+        categories = ['CROP'];
+      }
+
+      const latestVerification = r.verificationRecords[0] || null;
+
+      return {
+        id: r.id,
+        reportNumber: r.reportNumber,
+        citizenName: r.citizenName,
+        citizenPhone: r.citizenPhone,
+        citizenEmail: r.citizenEmail,
+        district: r.district,
+        block: r.block,
+        panchayat: r.panchayat,
+        village: r.village,
+        wardNumber: r.wardNumber,
+        livelihoodCategories: categories,
+        lossDescription: r.lossDescription,
+        estimatedLossAmount: r.estimatedLossAmount,
+        status: r.status,
+        statusMessage: statusMessages[r.status] || {
+          hi: 'कार्य प्रगति पर है।',
+          bho: 'काम चल रहल बा।',
+          en: 'In progress.',
+        },
+        forwardedTo: formatForwardingInfo(r),
+        submittedAt: r.submittedAt,
+        verifiedAt: r.verifiedAt,
+        verificationOutcome: latestVerification?.outcome || null,
+        verificationNotes: latestVerification?.fieldObservations || null,
+        audioSimulationUrl: r.audioSimulationUrl,
+      };
+    });
+
+    const summary = {
+      total: formattedReports.length,
+      verified: formattedReports.filter((r) => ['VERIFIED', 'PARTIALLY_VERIFIED', 'ACTION_RECORDED', 'CLOSED'].includes(r.status)).length,
+      inProgress: formattedReports.filter((r) => ['ASSIGNED_FOR_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'REFERRED_FOR_RECOVERY', 'FOLLOWUP_IN_PROGRESS'].includes(r.status)).length,
+      submitted: formattedReports.filter((r) => ['SUBMITTED', 'AWAITING_REVIEW'].includes(r.status)).length,
+    };
+
+    res.json({
+      success: true,
+      totalRequests: formattedReports.length,
+      summary,
+      reports: formattedReports,
+    });
+  } catch (error: any) {
+    console.error('Error fetching citizen reports:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

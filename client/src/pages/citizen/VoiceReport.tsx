@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
+import { useCitizenAuth } from '../../context/CitizenAuthContext.js';
 import { VoiceRecorder } from '../../components/VoiceRecorder.js';
 import { AudioPlayerButton } from '../../components/AudioPlayerButton.js';
 import { api } from '../../api/client.js';
@@ -23,6 +24,7 @@ import { api } from '../../api/client.js';
 export const VoiceReport: React.FC = () => {
   const { t, language } = useLanguage();
   const { speakText } = useAccessibility();
+  const { citizen } = useCitizenAuth();
   const navigate = useNavigate();
 
   // Step state: 1 = Record, 2 = Confirm Transcript, 3 = Location & Contact, 4 = Review & Submit
@@ -49,9 +51,10 @@ export const VoiceReport: React.FC = () => {
   const [availableBlocks, setAvailableBlocks] = useState<string[]>([]);
   const [availablePanchayats, setAvailablePanchayats] = useState<string[]>([]);
 
-  // Citizen details
-  const [citizenName, setCitizenName] = useState<string>('');
-  const [citizenPhone, setCitizenPhone] = useState<string>('');
+  // Citizen details - auto-prefilled from logged in citizen
+  const [citizenName, setCitizenName] = useState<string>(() => citizen?.fullName || '');
+  const [citizenPhone, setCitizenPhone] = useState<string>(() => citizen?.phone || '');
+  const [citizenEmail, setCitizenEmail] = useState<string>(() => citizen?.email || '');
   const [district, setDistrict] = useState<string>('Supaul');
   const [block, setBlock] = useState<string>('Nirmali');
   const [panchayat, setPanchayat] = useState<string>('Mahuwa');
@@ -165,6 +168,7 @@ export const VoiceReport: React.FC = () => {
       const payload = {
         citizenName: name,
         citizenPhone: cleanPhone,
+        citizenEmail: citizenEmail.trim().toLowerCase() || citizen?.email || undefined,
         preferredLanguage: language,
         isVoiceReport,
         rawTranscript: rawTranscript || transcriptText,
@@ -360,6 +364,13 @@ export const VoiceReport: React.FC = () => {
               <span>नमूना विवरण ऑटो-भरें (Auto-Fill)</span>
             </button>
           </div>
+
+          {citizen && (
+            <div className="p-2.5 bg-blue-50/80 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
+              <span>✓ आपके Google खाते (<strong>{citizen.email}</strong>) से नाम व संपर्क स्वतः सेट है।</span>
+              <span className="text-[10px] bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-bold px-2 py-0.5 rounded">लॉगिन सक्रिय</span>
+            </div>
+          )}
 
           {/* Citizen Name & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -17,6 +17,7 @@ export const ROLES = {
   SDM: 'SDM',
   DM: 'DM',
   SYSTEM_ADMIN: 'SYSTEM_ADMIN',
+  CITIZEN: 'CITIZEN',
 } as const;
 
 export type RoleType = keyof typeof ROLES;
