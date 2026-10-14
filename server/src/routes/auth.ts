@@ -151,6 +151,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
 router.get('/demo-users', async (_req: Request, res: Response): Promise<void> => {
   try {
     const users = await prisma.user.findMany({
+      where: { role: { not: 'CITIZEN' } },
       select: {
         id: true,
         email: true,
