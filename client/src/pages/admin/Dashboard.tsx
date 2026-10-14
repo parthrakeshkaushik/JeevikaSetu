@@ -39,19 +39,28 @@ export const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Filters
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => {
+    if (user?.jurisdictionType === 'STATE' || user?.role === 'SYSTEM_ADMIN') return 'ALL';
+    return user?.jurisdictionName || 'ALL';
+  });
   const [selectedBlock, setSelectedBlock] = useState<string>('ALL');
 
   useEffect(() => {
     loadDashboardData();
-  }, [user, selectedBlock]);
+  }, [user, selectedDistrict, selectedBlock]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
+      const distQuery = selectedDistrict !== 'ALL' ? selectedDistrict : undefined;
       const blockQuery = selectedBlock !== 'ALL' ? selectedBlock : undefined;
+      const reportParams: Record<string, string> = { limit: '6' };
+      if (selectedDistrict !== 'ALL') {
+        reportParams.district = selectedDistrict;
+      }
       const [dashRes, casesRes] = await Promise.all([
-        api.getDashboardAnalytics(user?.jurisdictionName || undefined, blockQuery),
-        api.getReports({ limit: '6' }),
+        api.getDashboardAnalytics(distQuery, blockQuery),
+        api.getReports(reportParams),
       ]);
 
       if (dashRes.success) setAnalytics(dashRes);
@@ -90,10 +99,30 @@ export const Dashboard: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* District Switcher */}
+          <div className="flex items-center gap-1.5 bg-blue-50/80 border border-blue-200 rounded-xl px-3 py-1.5 shadow-2xs">
+            <MapPin className="w-3.5 h-3.5 text-blue-700" />
+            <select
+              value={selectedDistrict}
+              onChange={(e) => {
+                setSelectedDistrict(e.target.value);
+                setSelectedBlock('ALL');
+              }}
+              className="text-xs font-bold bg-transparent border-none text-blue-900 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">🌐 समस्त जिले (All Bihar)</option>
+              <option value="Supaul">📍 सुपौल (Supaul)</option>
+              <option value="Darbhanga">📍 दरभंगा (Darbhanga)</option>
+              <option value="Madhubani">📍 मधुबनी (Madhubani)</option>
+              <option value="Saharsa">📍 सहरसा (Saharsa)</option>
+              <option value="Muzaffarpur">📍 मुजफ्फरपुर (Muzaffarpur)</option>
+            </select>
+          </div>
+
           <Link
             to="/admin/cases"
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>सभी मामले देखें</span>

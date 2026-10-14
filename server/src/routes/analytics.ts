@@ -21,19 +21,28 @@ router.get('/dashboard', authenticateToken, async (req: AuthenticatedRequest, re
       } else {
         baseWhere.assignedUserId = user.id;
       }
-    } else if (user.role === ROLES.BDO) {
-      if (user.jurisdictionName) {
+    } else if (user.role === ROLES.BDO || user.role === ROLES.SDM) {
+      if (block && block !== 'ALL') {
+        baseWhere.block = block as string;
+      } else if (user.jurisdictionName) {
         baseWhere.block = user.jurisdictionName;
       }
     } else if ([ROLES.DM, ROLES.ADM, ROLES.DDC, ROLES.DPO].includes(user.role as any)) {
-      if (user.jurisdictionName) {
+      if (district === 'ALL') {
+        delete baseWhere.district;
+      } else if (district) {
+        baseWhere.district = district as string;
+      } else if (user.jurisdictionName && user.jurisdictionType !== 'STATE') {
         baseWhere.district = user.jurisdictionName;
       }
     }
 
-    // Override from query if permitted (e.g. DM drilling down into a block)
+    // Override from query if permitted (e.g. statewide coordination or drilldown)
     if (district && district !== 'ALL') baseWhere.district = district as string;
+    else if (district === 'ALL') delete baseWhere.district;
+
     if (block && block !== 'ALL') baseWhere.block = block as string;
+    else if (block === 'ALL') delete baseWhere.block;
 
     // Fetch reports matching scope
     const allReports = await prisma.livelihoodReport.findMany({

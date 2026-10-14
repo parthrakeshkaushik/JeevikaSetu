@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting JeevikaSetu seed...');
+  console.log('🌱 Starting JeevikaSetu multi-district seed...');
 
   // Clear existing demonstration data
   await prisma.systemAuditLog.deleteMany({});
@@ -24,25 +24,46 @@ async function main() {
   // Common password for demo accounts
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  // 1. Create 8 Official Administrative Role Users
+  // 1. Create Official Administrative Role Users across Bihar flood districts & State HQ
   const users = [
+    // --- 1. STATE HEADQUARTERS (बिहार राज्य मुख्यालय) ---
     {
-      email: 'volunteer@jeevikasetu.gov.in',
-      fullName: 'Ramesh Mandal (रमेश मंडल)',
-      role: 'VOLUNTEER',
-      department: 'Rural Youth Volunteer',
-      jurisdictionType: 'PANCHAYAT',
-      jurisdictionName: 'Mahuwa',
-      phone: '9801234501',
+      email: 'admin@jeevikasetu.gov.in',
+      fullName: 'Priya Sharma (प्रिया शर्मा)',
+      role: 'SYSTEM_ADMIN',
+      department: 'IT & e-Governance Cell',
+      jurisdictionType: 'STATE',
+      jurisdictionName: 'Bihar',
+      phone: '9801234508',
     },
     {
-      email: 'bdo.nirmali@jeevikasetu.gov.in',
-      fullName: 'Anjali Kumari, BAS (अंजलि कुमारी)',
-      role: 'BDO',
-      department: 'Rural Development',
-      jurisdictionType: 'BLOCK',
-      jurisdictionName: 'Nirmali',
-      phone: '9801234502',
+      email: 'dm.state@jeevikasetu.gov.in',
+      fullName: 'Vivek Kumar Singh, IAS (विवेक कुमार सिंह)',
+      role: 'DM',
+      department: 'Disaster Management Department',
+      jurisdictionType: 'STATE',
+      jurisdictionName: 'Bihar',
+      phone: '9801234509',
+    },
+
+    // --- 2. SUPAUL DISTRICT (सुपौल जिला - कोसी बेसिन) ---
+    {
+      email: 'dm.supaul@jeevikasetu.gov.in',
+      fullName: 'Kaushal Kishore, IAS (कौशल किशोर)',
+      role: 'DM',
+      department: 'District Magistrate & Collector',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Supaul',
+      phone: '9801234507',
+    },
+    {
+      email: 'adm.relief@jeevikasetu.gov.in',
+      fullName: 'Sanjay Kumar Singh, BAS (संजय कुमार सिंह)',
+      role: 'ADM',
+      department: 'Disaster Management & Revenue',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Supaul',
+      phone: '9801234506',
     },
     {
       email: 'ddc.supaul@jeevikasetu.gov.in',
@@ -72,31 +93,129 @@ async function main() {
       phone: '9801234505',
     },
     {
-      email: 'adm.relief@jeevikasetu.gov.in',
-      fullName: 'Sanjay Kumar Singh, BAS (संजय कुमार सिंह)',
-      role: 'ADM',
-      department: 'Disaster Management & Revenue',
-      jurisdictionType: 'DISTRICT',
-      jurisdictionName: 'Supaul',
-      phone: '9801234506',
+      email: 'bdo.nirmali@jeevikasetu.gov.in',
+      fullName: 'Anjali Kumari, BAS (अंजलि कुमारी)',
+      role: 'BDO',
+      department: 'Rural Development',
+      jurisdictionType: 'BLOCK',
+      jurisdictionName: 'Nirmali',
+      phone: '9801234502',
     },
     {
-      email: 'dm.supaul@jeevikasetu.gov.in',
-      fullName: 'Kaushal Kishore, IAS (कौशल किशोर)',
+      email: 'volunteer@jeevikasetu.gov.in',
+      fullName: 'Ramesh Mandal (रमेश मंडल)',
+      role: 'VOLUNTEER',
+      department: 'Rural Youth Volunteer',
+      jurisdictionType: 'PANCHAYAT',
+      jurisdictionName: 'Mahuwa',
+      phone: '9801234501',
+    },
+
+    // --- 3. DARBHANGA DISTRICT (दरभंगा जिला - कमला/बागमती बेसिन) ---
+    {
+      email: 'dm.darbhanga@jeevikasetu.gov.in',
+      fullName: 'Rajeev Raushan, IAS (राजीव रौशन)',
       role: 'DM',
       department: 'District Magistrate & Collector',
       jurisdictionType: 'DISTRICT',
-      jurisdictionName: 'Supaul',
-      phone: '9801234507',
+      jurisdictionName: 'Darbhanga',
+      phone: '9801234510',
     },
     {
-      email: 'admin@jeevikasetu.gov.in',
-      fullName: 'Priya Sharma (प्रिया शर्मा)',
-      role: 'SYSTEM_ADMIN',
-      department: 'IT & e-Governance Cell',
-      jurisdictionType: 'STATE',
-      jurisdictionName: 'Bihar',
-      phone: '9801234508',
+      email: 'adm.darbhanga@jeevikasetu.gov.in',
+      fullName: 'Manoj Kumar, BAS (मनोज कुमार)',
+      role: 'ADM',
+      department: 'Disaster Management & Revenue',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Darbhanga',
+      phone: '9801234511',
+    },
+    {
+      email: 'bdo.kusheshwar@jeevikasetu.gov.in',
+      fullName: 'Shashi Shekhar, BAS (शशि शेखर)',
+      role: 'BDO',
+      department: 'Rural Development',
+      jurisdictionType: 'BLOCK',
+      jurisdictionName: 'Kusheshwar Asthan',
+      phone: '9801234512',
+    },
+    {
+      email: 'volunteer.darbhanga@jeevikasetu.gov.in',
+      fullName: 'Amarjeet Sahani (अमरजीत सहनी)',
+      role: 'VOLUNTEER',
+      department: 'Fisheries & Rural Volunteer',
+      jurisdictionType: 'PANCHAYAT',
+      jurisdictionName: 'Satiyara',
+      phone: '9801234513',
+    },
+
+    // --- 4. MADHUBANI DISTRICT (मधुबनी जिला - मिथिलांचल) ---
+    {
+      email: 'dm.madhubani@jeevikasetu.gov.in',
+      fullName: 'Arvind Kumar Verma, IAS (अरविंद कुमार वर्मा)',
+      role: 'DM',
+      department: 'District Magistrate & Collector',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Madhubani',
+      phone: '9801234514',
+    },
+    {
+      email: 'bdo.jhanjharpur@jeevikasetu.gov.in',
+      fullName: 'Pankaj Kumar, BAS (पंकज कुमार)',
+      role: 'BDO',
+      department: 'Rural Development',
+      jurisdictionType: 'BLOCK',
+      jurisdictionName: 'Jhanjharpur',
+      phone: '9801234515',
+    },
+    {
+      email: 'volunteer.madhubani@jeevikasetu.gov.in',
+      fullName: 'Poonam Jha (पूनम झा)',
+      role: 'VOLUNTEER',
+      department: 'JEEViKA Self-Help Volunteer',
+      jurisdictionType: 'PANCHAYAT',
+      jurisdictionName: 'Kothia',
+      phone: '9801234516',
+    },
+
+    // --- 5. SAHARSA DISTRICT (सहरसा जिला - कोसी तटबंध) ---
+    {
+      email: 'dm.saharsa@jeevikasetu.gov.in',
+      fullName: 'Vaibhav Chaudhary, IAS (वैभव चौधरी)',
+      role: 'DM',
+      department: 'District Magistrate & Collector',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Saharsa',
+      phone: '9801234517',
+    },
+    {
+      email: 'bdo.simri@jeevikasetu.gov.in',
+      fullName: 'Ashok Kumar, BAS (अशोक कुमार)',
+      role: 'BDO',
+      department: 'Rural Development',
+      jurisdictionType: 'BLOCK',
+      jurisdictionName: 'Simri Bakhtiarpur',
+      phone: '9801234518',
+    },
+
+    // --- 6. MUZAFFARPUR DISTRICT (मुजफ्फरपुर जिला - बूढ़ी गंडक) ---
+    {
+      email: 'dm.muzaffarpur@jeevikasetu.gov.in',
+      fullName: 'Subrat Kumar Sen, IAS (सुब्रत कुमार सेन)',
+      role: 'DM',
+      department: 'District Magistrate & Collector',
+      jurisdictionType: 'DISTRICT',
+      jurisdictionName: 'Muzaffarpur',
+      phone: '9801234519',
+    },
+    {
+      email: 'bdo.aurai@jeevikasetu.gov.in',
+      fullName: 'Sunil Kumar, BAS (सुनील कुमार)',
+      role: 'BDO',
+      department: 'Rural Development',
+      jurisdictionType: 'BLOCK',
+      jurisdictionName: 'Aurai',
+      phone: '9801234520',
     },
   ];
 
@@ -114,11 +233,12 @@ async function main() {
         phone: u.phone,
       },
     });
-    createdUsers[u.role] = created;
+    if (!createdUsers[u.role]) createdUsers[u.role] = created;
+    createdUsers[u.email] = created;
   }
-  console.log(`Created ${users.length} administrative demo accounts.`);
+  console.log(`Created ${users.length} administrative multi-district demo accounts.`);
 
-  // 2. Create Service Directory Entries
+  // 2. Create Service Directory Entries across districts
   const services = [
     {
       district: 'Supaul',
@@ -141,24 +261,24 @@ async function main() {
       officeAddress: 'पशु औषधालय, निर्मली बाजार',
     },
     {
-      district: 'Supaul',
-      block: 'Pipra',
-      department: 'Agriculture Dept',
-      schemeName: 'आकस्मिक फसल योजना एवं बीज अनुदान (Contingency Seed Distribution)',
-      description: 'बाढ़ उपरांत वैकल्पिक रबी/तोरिया/मक्का के निःशुल्क मिनीकिट वितरण।',
-      contactPerson: 'श्री रामानंद झा (प्रखंड कृषि पदाधिकारी)',
-      contactPhone: '9473191024',
-      officeAddress: 'ई-किसान भवन, पिपरा',
+      district: 'Darbhanga',
+      block: 'Kusheshwar Asthan',
+      department: 'Fisheries Dept',
+      schemeName: 'मत्स्य पालक क्षतिपूर्ति एवं फिंगरलिंग अनुदान',
+      description: 'बाढ़ प्रभावित पोखरों हेतु पुनः मत्स्य बीज संचयन व जाल सहायता।',
+      contactPerson: 'श्री दिनेश साहनी (मत्स्य प्रसार पदाधिकारी)',
+      contactPhone: '9431102847',
+      officeAddress: 'प्रखंड मत्स्य कार्यालय, कुशेश्वर स्थान',
     },
     {
-      district: 'Supaul',
-      block: 'Kishanpur',
-      department: 'JEEViKA',
-      schemeName: 'जीविका आपातकालीन आजीविका संकुल ऋण (JEEViKA SHG Relief Loan)',
-      description: 'महिला स्वयं सहायता समूह सदस्यों हेतु लघु व्यवसाय व आजीविका पुनर्स्थापना सहायता।',
-      contactPerson: 'श्रीमती नीलम देवी (क्षेत्रीय समन्वयक)',
-      contactPhone: '9934018274',
-      officeAddress: 'प्रखंड परियोजना समन्वय इकाई (BPIU), किशनपुर',
+      district: 'Madhubani',
+      block: 'Jhanjharpur',
+      department: 'Agriculture Dept',
+      schemeName: 'मखाना एवं आकस्मिक रबी फसल योजना',
+      description: 'जलमग्न मखाना एवं धान कृषकों हेतु आकस्मिक बीज मिनीकिट।',
+      contactPerson: 'श्री रामानंद झा (प्रखंड कृषि पदाधिकारी)',
+      contactPhone: '9473191024',
+      officeAddress: 'ई-किसान भवन, झंझारपुर',
     },
   ];
 
@@ -167,8 +287,9 @@ async function main() {
   }
   console.log(`Created ${services.length} relief service directory records.`);
 
-  // 3. Create Seed Livelihood Damage Reports with realistic Bihar scenarios
+  // 3. Create Realistic Multi-District Livelihood Damage Reports
   const seedReports = [
+    // --- SUPAUL CASES ---
     {
       reportNumber: 'JS-2027-SUP-8411',
       citizenName: 'भोला यादव (Bhola Yadav)',
@@ -192,7 +313,7 @@ async function main() {
       priorityLevel: 'URGENT',
       priorityRationale: 'पशुधन संकट (+20) • फसल जलमग्नता (+15) • सीमांत कृषक (+5) • बड़ा परिवार (+5) • आधारभूत (+20)',
       status: 'VERIFIED',
-      assignedUserId: createdUsers['VOLUNTEER'].id,
+      assignedUserId: createdUsers['volunteer@jeevikasetu.gov.in']?.id || createdUsers['VOLUNTEER']?.id,
       assignedRole: 'VOLUNTEER',
       submittedAt: new Date(Date.now() - 36 * 3600 * 1000),
       verifiedAt: new Date(Date.now() - 6 * 3600 * 1000),
@@ -228,7 +349,7 @@ async function main() {
       priorityLevel: 'URGENT',
       priorityRationale: 'महिला प्रधान परिवार (+10) • भूमिहीन (+10) • दुकान/स्टॉक क्षति (+10) • दीर्घकालिक अवरोध (+10) • आधारभूत (+20)',
       status: 'REFERRED_FOR_RECOVERY',
-      assignedUserId: createdUsers['BDO'].id,
+      assignedUserId: createdUsers['bdo.nirmali@jeevikasetu.gov.in']?.id || createdUsers['BDO']?.id,
       assignedRole: 'BDO',
       submittedAt: new Date(Date.now() - 48 * 3600 * 1000),
       verifiedAt: new Date(Date.now() - 20 * 3600 * 1000),
@@ -260,35 +381,12 @@ async function main() {
       priorityLevel: 'HIGH',
       priorityRationale: 'दैनिक मजदूरी ठप (+15) • भूमिहीन मजदूर (+10) • दीर्घकालिक अवरोध (+10) • आधारभूत (+20)',
       status: 'ASSIGNED_FOR_VERIFICATION',
-      assignedUserId: createdUsers['VOLUNTEER'].id,
+      assignedUserId: createdUsers['volunteer@jeevikasetu.gov.in']?.id || createdUsers['VOLUNTEER']?.id,
       assignedRole: 'VOLUNTEER',
       submittedAt: new Date(Date.now() - 24 * 3600 * 1000),
     },
-    {
-      reportNumber: 'JS-2027-SUP-8414',
-      citizenName: 'राजेंद्र महतो (Rajendra Mahto)',
-      citizenPhone: '9876543213',
-      preferredLanguage: 'hi',
-      isVoiceReport: true,
-      rawTranscript: 'खेत में लगा 5 एचपी का डीजल पंपसेट बाढ़ के तेज बहाव में गाद और बालू में धंस गया',
-      confirmedTranscript: 'सिंचाई के लिए खेत में रखा 5 हॉर्सपावर का डीजल पंपसेट और पाइपलाइन बाढ़ के मलबे और गाद में दब गई है और मोटर खराब हो गया है।',
-      district: 'Supaul',
-      block: 'Kishanpur',
-      panchayat: 'Bhairabpur',
-      village: 'भैरवपुर (Bhairabpur)',
-      wardNumber: '1',
-      livelihoodCategories: JSON.stringify(['EQUIPMENT']),
-      lossDescription: 'डीजल पम्पसेट सिल्ट में डूबने से क्षतिग्रस्त।',
-      estimatedLossAmount: 28000,
-      disruptionDurationDays: 4,
-      householdSize: 5,
-      vulnerabilityFlags: JSON.stringify(['MARGINAL_FARMER']),
-      priorityScore: 52,
-      priorityLevel: 'MEDIUM',
-      priorityRationale: 'उपकरण क्षति (+10) • सीमांत कृषक (+5) • मध्यम अवरोध (+5) • आधारभूत (+20)',
-      status: 'SUBMITTED',
-      submittedAt: new Date(Date.now() - 10 * 3600 * 1000),
-    },
+
+    // --- DARBHANGA CASES ---
     {
       reportNumber: 'JS-2027-DAR-7101',
       citizenName: 'मो. शमशाद आलम (Md. Shamshad Alam)',
@@ -345,6 +443,86 @@ async function main() {
         actionDetails: 'मत्स्य पालक योजनान्तर्गत जीरा (फिंगरलिंग) पुनः संचयन हेतु तकनीकी परामर्श एवं रियायती सहायता पंजीबद्ध।',
       },
     },
+
+    // --- MADHUBANI CASES ---
+    {
+      reportNumber: 'JS-2027-MAD-5201',
+      citizenName: 'रामानंद कामत (Ramanand Kamat)',
+      citizenPhone: '9876543216',
+      preferredLanguage: 'hi',
+      isVoiceReport: true,
+      rawTranscript: 'कमला बलान के पानी से हमर मखाना के खेत और पोखरा डूब गेल',
+      confirmedTranscript: 'कमला बलान नदी में जलस्तर अचानक बढ़ने से 1.5 एकड़ का मखाना उत्पादन पोखरा और 1 बीघा धान की फसल जलमग्न हो गई है।',
+      district: 'Madhubani',
+      block: 'Jhanjharpur',
+      panchayat: 'Kothia',
+      village: 'कोठिया पूर्व टोला (Kothia)',
+      wardNumber: '5',
+      livelihoodCategories: JSON.stringify(['CROP', 'FISHERIES']),
+      lossDescription: 'मखाना पोखरा एवं धान की फसल जलमग्न।',
+      estimatedLossAmount: 72000,
+      disruptionDurationDays: 7,
+      householdSize: 5,
+      vulnerabilityFlags: JSON.stringify(['MARGINAL_FARMER']),
+      priorityScore: 71,
+      priorityLevel: 'HIGH',
+      priorityRationale: 'मखाना नकदी फसल क्षति (+15) • सीमांत कृषक (+5) • मध्यम अवरोध (+5) • आधारभूत (+20)',
+      status: 'SUBMITTED',
+      submittedAt: new Date(Date.now() - 14 * 3600 * 1000),
+    },
+
+    // --- SAHARSA CASES ---
+    {
+      reportNumber: 'JS-2027-SAH-3301',
+      citizenName: 'दिलीप यादव (Dilip Yadav)',
+      citizenPhone: '9876543217',
+      preferredLanguage: 'hi',
+      isVoiceReport: true,
+      rawTranscript: 'कोसी के कटाव से हमारा बथान और मवेशी का चारा बह गया',
+      confirmedTranscript: 'कोसी नदी के पश्चिमी तटबंध के भीतर अचानक कटाव होने से मवेशी बथान ढह गया और 4 गायों के लिए रखा 50 क्विंटल सूखा चारा पानी में बह गया।',
+      district: 'Saharsa',
+      block: 'Simri Bakhtiarpur',
+      panchayat: 'Khamhaunti',
+      village: 'खमहोती दियारा (Khamhaunti)',
+      wardNumber: '8',
+      livelihoodCategories: JSON.stringify(['LIVESTOCK']),
+      lossDescription: 'मवेशी शेड ध्वस्त एवं 50 क्विंटल चारा का नुकसान।',
+      estimatedLossAmount: 42000,
+      disruptionDurationDays: 6,
+      householdSize: 6,
+      vulnerabilityFlags: JSON.stringify(['MARGINAL_FARMER']),
+      priorityScore: 74,
+      priorityLevel: 'URGENT',
+      priorityRationale: 'पशुधन चारा संकट (+20) • कटाव जोखिम (+10) • सीमांत कृषक (+5) • आधारभूत (+20)',
+      status: 'AWAITING_REVIEW',
+      submittedAt: new Date(Date.now() - 20 * 3600 * 1000),
+    },
+
+    // --- MUZAFFARPUR CASES ---
+    {
+      reportNumber: 'JS-2027-MUZ-4101',
+      citizenName: 'मो. अख्तर अंसारी (Md. Akhtar Ansari)',
+      citizenPhone: '9876543218',
+      preferredLanguage: 'hi',
+      isVoiceReport: false,
+      confirmedTranscript: 'बूढ़ी गंडक नदी का पानी औराई प्रखंड के निचले इलाके में घुसने से हमारी हथकरघा बुनाई इकाई में रखा सूत, तैयार चादरें और लूम मशीन में जंग लग गया है।',
+      district: 'Muzaffarpur',
+      block: 'Aurai',
+      panchayat: 'Bhadurpur',
+      village: 'बहादुरपुर बुनकर टोला (Bhadurpur)',
+      wardNumber: '3',
+      livelihoodCategories: JSON.stringify(['SHOP_BUSINESS', 'EQUIPMENT']),
+      lossDescription: 'हथकरघा बुनाई इकाई जलमग्न, कच्चा माल व मशीनरी क्षतिग्रस्त।',
+      estimatedLossAmount: 58000,
+      disruptionDurationDays: 12,
+      householdSize: 6,
+      vulnerabilityFlags: JSON.stringify(['LANDLESS_LABOR']),
+      priorityScore: 76,
+      priorityLevel: 'URGENT',
+      priorityRationale: 'हस्तशिल्प/लघु व्यवसाय (+15) • उपकरण क्षति (+10) • दीर्घकालिक अवरोध (+10) • आधारभूत (+20)',
+      status: 'SUBMITTED',
+      submittedAt: new Date(Date.now() - 8 * 3600 * 1000),
+    },
   ];
 
   for (const rep of seedReports) {
@@ -376,7 +554,7 @@ async function main() {
       await prisma.verificationRecord.create({
         data: {
           reportId: createdReport.id,
-          verifiedByUserId: createdUsers['VOLUNTEER'].id,
+          verifiedByUserId: createdUsers['volunteer@jeevikasetu.gov.in']?.id || createdUsers['VOLUNTEER'].id,
           verifiedRole: 'VOLUNTEER',
           outcome: verification.outcome,
           fieldObservations: verification.fieldNotes,
@@ -391,8 +569,8 @@ async function main() {
       await prisma.workflowEvent.create({
         data: {
           reportId: createdReport.id,
-          actorUserId: createdUsers['VOLUNTEER'].id,
-          actorName: createdUsers['VOLUNTEER'].fullName,
+          actorUserId: createdUsers['volunteer@jeevikasetu.gov.in']?.id || createdUsers['VOLUNTEER'].id,
+          actorName: 'Ramesh Mandal',
           actorRole: 'VOLUNTEER',
           action: 'VERIFY',
           fromStatus: 'ASSIGNED_FOR_VERIFICATION',
@@ -411,7 +589,7 @@ async function main() {
           programmeType: followUp.programmeType,
           assignedDepartment: followUp.assignedDepartment,
           actionDetails: followUp.actionDetails,
-          recordedByUserId: createdUsers['BDO'].id,
+          recordedByUserId: createdUsers['bdo.nirmali@jeevikasetu.gov.in']?.id || createdUsers['BDO'].id,
           status: 'COMPLETED',
           createdAt: new Date(Date.now() - 15 * 3600 * 1000),
         },
@@ -420,8 +598,8 @@ async function main() {
       await prisma.workflowEvent.create({
         data: {
           reportId: createdReport.id,
-          actorUserId: createdUsers['BDO'].id,
-          actorName: createdUsers['BDO'].fullName,
+          actorUserId: createdUsers['bdo.nirmali@jeevikasetu.gov.in']?.id || createdUsers['BDO'].id,
+          actorName: 'Anjali Kumari, BAS',
           actorRole: 'BDO',
           action: 'RECORD_ACTION',
           fromStatus: 'REFERRED_FOR_RECOVERY',
@@ -433,7 +611,7 @@ async function main() {
     }
   }
 
-  console.log(`Created ${seedReports.length} demonstration livelihood damage reports with workflows.`);
+  console.log(`Created ${seedReports.length} multi-district livelihood damage reports.`);
   console.log('✅ Seed completed successfully!');
 }
 

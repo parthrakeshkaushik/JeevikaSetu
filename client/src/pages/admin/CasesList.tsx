@@ -110,7 +110,64 @@ export const CasesList: React.FC = () => {
         </form>
 
         {/* Filter Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+          {/* District Filter */}
+          <select
+            value={district}
+            onChange={(e) => {
+              setDistrict(e.target.value);
+              setBlock('ALL');
+            }}
+            className="p-2 border-2 border-blue-300 rounded-lg text-xs bg-blue-50/50 font-bold text-blue-900"
+          >
+            <option value="ALL">समस्त जिले (All Districts)</option>
+            <option value="Supaul">सुपौल (Supaul)</option>
+            <option value="Darbhanga">दरभंगा (Darbhanga)</option>
+            <option value="Madhubani">मधुबनी (Madhubani)</option>
+            <option value="Saharsa">सहरसा (Saharsa)</option>
+            <option value="Muzaffarpur">मुजफ्फरपुर (Muzaffarpur)</option>
+          </select>
+
+          {/* Block Selector */}
+          <select
+            value={block}
+            onChange={(e) => setBlock(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-medium"
+          >
+            <option value="ALL">समस्त प्रखंड (All Blocks)</option>
+            {(district === 'ALL' || district === 'Supaul') && (
+              <>
+                <option value="Nirmali">Nirmali (निर्मली)</option>
+                <option value="Pipra">Pipra (पिपरा)</option>
+                <option value="Kishanpur">Kishanpur (किशनपुर)</option>
+              </>
+            )}
+            {(district === 'ALL' || district === 'Darbhanga') && (
+              <>
+                <option value="Kusheshwar Asthan">Kusheshwar Asthan (कुशेश्वर स्थान)</option>
+                <option value="Biraul">Biraul (बिरौल)</option>
+              </>
+            )}
+            {(district === 'ALL' || district === 'Madhubani') && (
+              <>
+                <option value="Jhanjharpur">Jhanjharpur (झंझारपुर)</option>
+                <option value="Madhepur">Madhepur (मधेपुर)</option>
+              </>
+            )}
+            {(district === 'ALL' || district === 'Saharsa') && (
+              <>
+                <option value="Simri Bakhtiarpur">Simri Bakhtiarpur (सिमरी बख्तियारपुर)</option>
+                <option value="Mahishi">Mahishi (महिषी)</option>
+              </>
+            )}
+            {(district === 'ALL' || district === 'Muzaffarpur') && (
+              <>
+                <option value="Aurai">Aurai (औराई)</option>
+                <option value="Katra">Katra (कटरा)</option>
+              </>
+            )}
+          </select>
+
           {/* Status Filter */}
           <select
             value={status}
@@ -153,19 +210,6 @@ export const CasesList: React.FC = () => {
             <option value="EQUIPMENT">उपकरण / पम्पसेट (Equipment)</option>
             <option value="WAGE_LABOR">दैनिक मजदूरी (Labor)</option>
             <option value="FISHERIES">मत्स्य पालन (Fisheries)</option>
-          </select>
-
-          {/* Block Selector */}
-          <select
-            value={block}
-            onChange={(e) => setBlock(e.target.value)}
-            className="p-2 border border-slate-300 rounded-lg text-xs bg-slate-50 font-medium"
-          >
-            <option value="ALL">समस्त प्रखंड (All Blocks)</option>
-            <option value="Nirmali">Nirmali (निर्मली)</option>
-            <option value="Pipra">Pipra (पिपरा)</option>
-            <option value="Kishanpur">Kishanpur (किशनपुर)</option>
-            <option value="Kusheshwar Asthan">Kusheshwar Asthan</option>
           </select>
 
           {/* Assigned to me toggle for volunteers */}

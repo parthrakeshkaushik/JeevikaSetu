@@ -17,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password?: string) => Promise<boolean>;
   quickLoginAsRole: (role: string) => Promise<boolean>;
+  quickLoginUser: (targetUser: AdminUser) => Promise<boolean>;
   logout: () => void;
   demoUsers: AdminUser[];
 }
@@ -102,6 +103,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return login(email, 'password123');
   };
 
+  const quickLoginUser = async (targetUser: AdminUser): Promise<boolean> => {
+    return login(targetUser.email, 'password123');
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -117,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         quickLoginAsRole,
+        quickLoginUser,
         logout,
         demoUsers,
       }}

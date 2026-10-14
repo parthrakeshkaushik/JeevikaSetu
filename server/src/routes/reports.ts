@@ -335,12 +335,28 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         whereClause.assignedUserId = user.id;
       }
     } else if (user.role === ROLES.BDO) {
-      if (user.jurisdictionName) {
+      if (block && block !== 'ALL') {
+        whereClause.block = block as string;
+      } else if (user.jurisdictionName) {
+        whereClause.block = user.jurisdictionName;
+      }
+    } else if (user.role === ROLES.SDM) {
+      if (block && block !== 'ALL') {
+        whereClause.block = block as string;
+      } else if (user.jurisdictionName) {
         whereClause.block = user.jurisdictionName;
       }
     } else if ([ROLES.DM, ROLES.ADM, ROLES.DDC, ROLES.DPO].includes(user.role as any)) {
-      if (user.jurisdictionName) {
+      if (district === 'ALL') {
+        delete whereClause.district;
+      } else if (district) {
+        whereClause.district = district as string;
+      } else if (user.jurisdictionName && user.jurisdictionType !== 'STATE') {
         whereClause.district = user.jurisdictionName;
+      }
+    } else if (user.jurisdictionType === 'STATE' || user.role === ROLES.SYSTEM_ADMIN) {
+      if (district && district !== 'ALL') {
+        whereClause.district = district as string;
       }
     }
 
@@ -350,9 +366,13 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     }
     if (district && district !== 'ALL') {
       whereClause.district = district as string;
+    } else if (district === 'ALL') {
+      delete whereClause.district;
     }
     if (block && block !== 'ALL') {
       whereClause.block = block as string;
+    } else if (block === 'ALL' && [ROLES.DM, ROLES.ADM, ROLES.DDC, ROLES.DPO, ROLES.SYSTEM_ADMIN].includes(user.role as any)) {
+      delete whereClause.block;
     }
     if (priorityLevel && priorityLevel !== 'ALL') {
       whereClause.priorityLevel = priorityLevel as string;
