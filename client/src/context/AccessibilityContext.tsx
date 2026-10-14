@@ -25,9 +25,9 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (highContrast) {
-      document.documentElement.classList.add('high-contrast');
+      document.documentElement.classList.add('high-contrast', 'dark');
     } else {
-      document.documentElement.classList.remove('high-contrast');
+      document.documentElement.classList.remove('high-contrast', 'dark');
     }
     localStorage.setItem('jeevikasetu_contrast', highContrast.toString());
   }, [highContrast]);

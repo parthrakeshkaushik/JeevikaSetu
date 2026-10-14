@@ -44,13 +44,13 @@ export const ReportSuccess: React.FC = () => {
       </div>
 
       {/* Report ID Card */}
-      <div className="bg-white p-6 rounded-2xl border-2 border-blue-200 shadow-md space-y-4 text-left">
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-900/60 shadow-md space-y-4 text-left">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           {t('reportNumberLabel')}:
         </div>
 
-        <div className="flex items-center justify-between bg-blue-50/80 p-3.5 rounded-xl border border-blue-200">
-          <span className="text-xl sm:text-2xl font-mono font-extrabold text-blue-900 tracking-wider">
+        <div className="flex items-center justify-between bg-blue-50/80 dark:bg-blue-950/60 p-3.5 rounded-xl border border-blue-200 dark:border-blue-800">
+          <span className="text-xl sm:text-2xl font-mono font-extrabold text-blue-900 dark:text-blue-200 tracking-wider">
             {report.reportNumber}
           </span>
           <button
@@ -63,14 +63,14 @@ export const ReportSuccess: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
+        <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
           <div>
             <span className="text-slate-400">नाम:</span>
-            <div className="font-semibold text-slate-800">{report.citizenName}</div>
+            <div className="font-semibold text-slate-800 dark:text-slate-100">{report.citizenName}</div>
           </div>
           <div>
             <span className="text-slate-400">स्थान:</span>
-            <div className="font-semibold text-slate-800">{report.village}, {report.district}</div>
+            <div className="font-semibold text-slate-800 dark:text-slate-100">{report.village}, {report.district}</div>
           </div>
           <div>
             <span className="text-slate-400">वर्तमान स्थिति:</span>
@@ -78,20 +78,20 @@ export const ReportSuccess: React.FC = () => {
           </div>
           <div>
             <span className="text-slate-400">दिनांक:</span>
-            <div className="font-semibold text-slate-800">
+            <div className="font-semibold text-slate-800 dark:text-slate-100">
               {new Date(report.submittedAt || Date.now()).toLocaleDateString('hi-IN')}
             </div>
           </div>
         </div>
 
-        <p className="text-[11px] text-slate-500 italic">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
           * {t('keepSafeNote')}
         </p>
       </div>
 
       {/* Honest Public Declaration */}
-      <div className="p-4 bg-slate-100 rounded-xl border border-slate-200 text-slate-600 text-xs text-left flex items-start gap-2.5">
-        <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div className="p-4 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs text-left flex items-start gap-2.5">
+        <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
         <span className="leading-relaxed">
           {t('successHonestDisclaimer')}
         </span>
@@ -110,7 +110,7 @@ export const ReportSuccess: React.FC = () => {
 
         <Link
           to="/"
-          className="w-full py-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
         >
           <Home className="w-4 h-4" />
           <span>{t('btnBackHome')}</span>

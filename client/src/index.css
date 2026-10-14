@@ -7,30 +7,328 @@
     @apply bg-slate-50 text-slate-900 antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
 
-  /* High Contrast Accessibility Theme */
-  html.high-contrast {
-    filter: contrast(125%);
-  }
+/* Dark & High-Contrast Theme */
+html.high-contrast,
+html.dark {
+  color-scheme: dark;
+}
 
-  html.high-contrast body {
-    @apply bg-black text-white;
-  }
+html.high-contrast body,
+html.dark body {
+  background-color: #020617; /* slate-950 */
+  color: #f8fafc; /* slate-50 */
+}
 
-  html.high-contrast .bg-white {
-    @apply bg-slate-900 text-white border-slate-700;
-  }
+/* Base Surfaces */
+html.high-contrast .bg-white,
+html.dark .bg-white {
+  background-color: #0f172a !important; /* slate-900 */
+  color: #f8fafc;
+  border-color: #334155 !important; /* slate-700 */
+}
 
-  html.high-contrast .text-slate-900 {
-    @apply text-white;
-  }
+html.high-contrast .bg-slate-50,
+html.dark .bg-slate-50 {
+  background-color: #020617 !important; /* slate-950 */
+  color: #f8fafc;
+  border-color: #1e293b !important; /* slate-800 */
+}
 
-  html.high-contrast .text-slate-600,
-  html.high-contrast .text-slate-500 {
-    @apply text-slate-300;
-  }
+html.high-contrast .bg-slate-100,
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important; /* slate-800 */
+  color: #f8fafc;
+  border-color: #334155 !important; /* slate-700 */
+}
 
-  html.high-contrast .bg-slate-50 {
-    @apply bg-slate-950;
-  }
+html.high-contrast .bg-slate-200,
+html.dark .bg-slate-200 {
+  background-color: #334155 !important; /* slate-700 */
+  color: #f8fafc;
+}
+
+/* Notification & Alert Boxes */
+html.high-contrast .bg-amber-50,
+html.dark .bg-amber-50 {
+  background-color: rgba(69, 26, 3, 0.75) !important; /* amber-950 */
+  color: #fef08a !important; /* amber-200 */
+  border-color: rgba(146, 64, 14, 0.8) !important; /* amber-800 */
+}
+
+html.high-contrast .bg-amber-100,
+html.dark .bg-amber-100 {
+  background-color: rgba(120, 53, 15, 0.7) !important;
+  color: #fef9c3 !important;
+  border-color: #b45309 !important;
+}
+
+html.high-contrast .bg-blue-50,
+html.dark .bg-blue-50 {
+  background-color: rgba(23, 37, 84, 0.75) !important; /* blue-950 */
+  color: #bfdbfe !important; /* blue-200 */
+  border-color: rgba(30, 64, 175, 0.8) !important; /* blue-800 */
+}
+
+html.high-contrast .bg-blue-100,
+html.dark .bg-blue-100 {
+  background-color: rgba(30, 58, 138, 0.7) !important;
+  color: #dbeafe !important;
+  border-color: #1d4ed8 !important;
+}
+
+html.high-contrast .bg-emerald-50,
+html.dark .bg-emerald-50 {
+  background-color: rgba(2, 44, 34, 0.75) !important; /* emerald-950 */
+  color: #a7f3d0 !important; /* emerald-200 */
+  border-color: rgba(6, 95, 70, 0.8) !important; /* emerald-800 */
+}
+
+html.high-contrast .bg-emerald-100,
+html.dark .bg-emerald-100 {
+  background-color: rgba(6, 78, 59, 0.7) !important;
+  color: #d1fae5 !important;
+  border-color: #047857 !important;
+}
+
+html.high-contrast .bg-teal-50,
+html.dark .bg-teal-50 {
+  background-color: rgba(4, 47, 46, 0.75) !important;
+  color: #99f6e4 !important;
+  border-color: rgba(17, 94, 89, 0.8) !important;
+}
+
+html.high-contrast .bg-teal-100,
+html.dark .bg-teal-100 {
+  background-color: rgba(19, 78, 74, 0.7) !important;
+  color: #ccfbf1 !important;
+  border-color: #0f766e !important;
+}
+
+html.high-contrast .bg-red-50,
+html.dark .bg-red-50 {
+  background-color: rgba(69, 10, 10, 0.75) !important;
+  color: #fecdd3 !important;
+  border-color: rgba(153, 27, 27, 0.8) !important;
+}
+
+html.high-contrast .bg-red-100,
+html.dark .bg-red-100 {
+  background-color: rgba(127, 29, 29, 0.7) !important;
+  color: #ffe4e6 !important;
+  border-color: #b91c1c !important;
+}
+
+html.high-contrast .bg-green-50,
+html.dark .bg-green-50 {
+  background-color: rgba(5, 46, 22, 0.75) !important;
+  color: #bbf7d0 !important;
+  border-color: rgba(22, 101, 52, 0.8) !important;
+}
+
+html.high-contrast .bg-purple-50,
+html.dark .bg-purple-50 {
+  background-color: rgba(59, 7, 100, 0.75) !important;
+  color: #e9d5ff !important;
+  border-color: rgba(107, 33, 168, 0.8) !important;
+}
+
+html.high-contrast .bg-indigo-50,
+html.dark .bg-indigo-50 {
+  background-color: rgba(30, 27, 75, 0.75) !important;
+  color: #c7d2fe !important;
+  border-color: rgba(55, 48, 163, 0.8) !important;
+}
+
+html.high-contrast .bg-cyan-50,
+html.dark .bg-cyan-50 {
+  background-color: rgba(8, 51, 68, 0.75) !important;
+  color: #a5f3fc !important;
+  border-color: rgba(21, 94, 117, 0.8) !important;
+}
+
+html.high-contrast .bg-sky-50,
+html.dark .bg-sky-50 {
+  background-color: rgba(8, 47, 73, 0.75) !important;
+  color: #bae6fd !important;
+  border-color: rgba(7, 89, 133, 0.8) !important;
+}
+
+html.high-contrast .bg-rose-50,
+html.dark .bg-rose-50 {
+  background-color: rgba(76, 5, 25, 0.75) !important;
+  color: #fecdd3 !important;
+  border-color: rgba(159, 18, 57, 0.8) !important;
+}
+
+html.high-contrast .bg-orange-50,
+html.dark .bg-orange-50 {
+  background-color: rgba(67, 20, 7, 0.75) !important;
+  color: #fed7aa !important;
+  border-color: rgba(154, 52, 18, 0.8) !important;
+}
+
+html.high-contrast .bg-gray-100,
+html.dark .bg-gray-100 {
+  background-color: #1e293b !important;
+  color: #f8fafc;
+  border-color: #334155 !important;
+}
+
+html.high-contrast .bg-gray-50,
+html.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+  color: #f8fafc;
+  border-color: #1e293b !important;
+}
+
+/* Text High-Contrast Overrides */
+html.high-contrast .text-slate-900,
+html.dark .text-slate-900 {
+  color: #ffffff !important;
+}
+
+html.high-contrast .text-slate-800,
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+html.high-contrast .text-slate-700,
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important; /* slate-200 */
+}
+
+html.high-contrast .text-slate-600,
+html.dark .text-slate-600,
+html.high-contrast .text-slate-500,
+html.dark .text-slate-500 {
+  color: #cbd5e1 !important; /* slate-300 */
+}
+
+html.high-contrast .text-amber-900,
+html.dark .text-amber-900,
+html.high-contrast .text-amber-800,
+html.dark .text-amber-800 {
+  color: #fde047 !important; /* amber-300 */
+}
+
+html.high-contrast .text-amber-700,
+html.dark .text-amber-700 {
+  color: #facc15 !important; /* amber-400 */
+}
+
+html.high-contrast .text-blue-900,
+html.dark .text-blue-900,
+html.high-contrast .text-blue-800,
+html.dark .text-blue-800 {
+  color: #bfdbfe !important; /* blue-200 */
+}
+
+html.high-contrast .text-blue-700,
+html.dark .text-blue-700 {
+  color: #93c5fd !important; /* blue-300 */
+}
+
+html.high-contrast .text-emerald-950,
+html.dark .text-emerald-950,
+html.high-contrast .text-emerald-900,
+html.dark .text-emerald-900,
+html.high-contrast .text-emerald-800,
+html.dark .text-emerald-800 {
+  color: #a7f3d0 !important; /* emerald-200 */
+}
+
+html.high-contrast .text-teal-900,
+html.dark .text-teal-900,
+html.high-contrast .text-teal-800,
+html.dark .text-teal-800 {
+  color: #99f6e4 !important; /* teal-200 */
+}
+
+html.high-contrast .text-green-800,
+html.dark .text-green-800,
+html.high-contrast .text-green-700,
+html.dark .text-green-700 {
+  color: #6ee7b7 !important;
+}
+
+html.high-contrast .text-red-900,
+html.dark .text-red-900,
+html.high-contrast .text-red-800,
+html.dark .text-red-800,
+html.high-contrast .text-red-700,
+html.dark .text-red-700 {
+  color: #fda4af !important; /* rose-300 */
+}
+
+html.high-contrast .text-purple-800,
+html.dark .text-purple-800 {
+  color: #e9d5ff !important;
+}
+
+html.high-contrast .text-indigo-800,
+html.dark .text-indigo-800 {
+  color: #c7d2fe !important;
+}
+
+html.high-contrast .text-cyan-800,
+html.dark .text-cyan-800 {
+  color: #a5f3fc !important;
+}
+
+html.high-contrast .text-sky-800,
+html.dark .text-sky-800 {
+  color: #bae6fd !important;
+}
+
+html.high-contrast .text-rose-800,
+html.dark .text-rose-800 {
+  color: #fecdd3 !important;
+}
+
+html.high-contrast .text-orange-800,
+html.dark .text-orange-800 {
+  color: #fed7aa !important;
+}
+
+/* Form Inputs, Selects & Textareas */
+html.high-contrast input:not([type="checkbox"]):not([type="radio"]),
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.high-contrast select,
+html.dark select,
+html.high-contrast textarea,
+html.dark textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+html.high-contrast option,
+html.dark option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+html.high-contrast input::placeholder,
+html.dark input::placeholder,
+html.high-contrast textarea::placeholder,
+html.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Borders */
+html.high-contrast .border-slate-200,
+html.dark .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+html.high-contrast .border-slate-300,
+html.dark .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+html.high-contrast .border-slate-100,
+html.dark .border-slate-100 {
+  border-color: #1e293b !important;
 }

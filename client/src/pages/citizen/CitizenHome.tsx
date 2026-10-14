@@ -18,16 +18,16 @@ export const CitizenHome: React.FC = () => {
     <div className="min-h-[85vh] flex flex-col justify-between py-6 px-4 max-w-xl mx-auto">
       {/* Top Banner & Audio Assistant */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/80 text-blue-800 text-xs font-semibold">
-          <ShieldCheck className="w-4 h-4 text-blue-700" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/80 dark:bg-blue-950/70 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800 text-xs font-semibold">
+          <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400" />
           <span>बिहार बाढ़ आजीविका समन्वय पोर्टल (HSC 2027)</span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
           बाढ़ से हुए नुकसान की जानकारी सीधे प्रशासन तक पहुंचाएं
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-sans">
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
           अपनी भाषा में बोलकर बताएं। हम आपके नुकसान को सत्यापित कर उचित आजीविका योजना से जोड़ेंगे।
         </p>
 
@@ -44,7 +44,7 @@ export const CitizenHome: React.FC = () => {
       <div className="my-8">
         <Link
           to="/report"
-          className="w-full group bg-gradient-to-r from-blue-600 via-blue-700 to-teal-700 hover:from-blue-700 hover:to-teal-800 text-white rounded-2xl p-6 sm:p-8 shadow-xl shadow-blue-200/60 flex flex-col items-center justify-center text-center transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          className="w-full group bg-gradient-to-r from-blue-600 via-blue-700 to-teal-700 hover:from-blue-700 hover:to-teal-800 text-white rounded-2xl p-6 sm:p-8 shadow-xl shadow-blue-200/60 dark:shadow-none flex flex-col items-center justify-center text-center transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-blue-300"
           aria-label={t('citizenTellLoss')}
         >
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white text-blue-700 flex items-center justify-center shadow-md mb-4 group-hover:scale-105 transition-transform">
@@ -70,41 +70,42 @@ export const CitizenHome: React.FC = () => {
       <div className="space-y-4">
         <Link
           to="/track"
-          className="w-full bg-white hover:bg-slate-50 border-2 border-slate-300 hover:border-blue-400 text-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs transition-all focus:outline-none"
+          className="w-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 text-slate-800 dark:text-white rounded-xl p-4 flex items-center justify-between shadow-xs transition-all focus:outline-none"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center flex-shrink-0">
-              <Search className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+              <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-sm sm:text-base text-slate-900">
+              <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                 {t('citizenCheckStatus')}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-500 dark:text-slate-400">
                 {t('citizenCheckStatusDesc')}
               </div>
             </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
         </Link>
 
         {/* Emergency Helpline & Relief Directory */}
         <Link
           to="/directory"
-          className="w-full bg-amber-50 hover:bg-amber-100/70 border border-amber-200 text-amber-900 rounded-xl p-3.5 flex items-center justify-between text-xs sm:text-sm font-medium transition-colors"
+          className="w-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100/70 dark:hover:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 rounded-xl p-3.5 flex items-center justify-between text-xs sm:text-sm font-bold transition-colors"
         >
           <div className="flex items-center gap-2.5">
-            <PhoneCall className="w-4 h-4 text-amber-700 flex-shrink-0" />
+            <PhoneCall className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0" />
             <span>जिला आपदा नियंत्रण कक्ष एवं पशु चारा राहत केंद्र सूची</span>
           </div>
-          <ArrowRight className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <ArrowRight className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
         </Link>
 
-        {/* Honest Citizen Disclaimer */}
-        <div className="p-3 bg-slate-100 rounded-xl text-slate-600 text-[11px] leading-relaxed flex items-start gap-2 border border-slate-200">
-          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+        {/* Honest Citizen Disclaimer - Crystal clear in both Light & Dark Theme */}
+        <div className="p-3.5 bg-slate-100 dark:bg-slate-900/90 rounded-2xl text-slate-700 dark:text-slate-200 text-xs leading-relaxed flex items-start gap-2.5 border border-slate-200 dark:border-slate-700 shadow-xs">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
           <span>
-            <strong>महत्वपूर्ण सूचना:</strong> यह प्रणाली बाढ़ प्रभावित परिवारों के नुकसान को रिकॉर्ड कर भौतिक सत्यापन व पुनर्प्राप्ति समन्वय हेतु है। यह तत्काल नकद भुगतान अथवा सरकारी मुआवजे की स्वतः गारंटी नहीं देता।
+            <strong className="text-slate-900 dark:text-amber-300 font-extrabold">महत्वपूर्ण सूचना: </strong>
+            यह प्रणाली बाढ़ प्रभावित परिवारों के नुकसान को रिकॉर्ड कर भौतिक सत्यापन व पुनर्प्राप्ति समन्वय हेतु है। यह तत्काल नकद भुगतान अथवा सरकारी मुआवजे की स्वतः गारंटी नहीं देता।
           </span>
         </div>
       </div>

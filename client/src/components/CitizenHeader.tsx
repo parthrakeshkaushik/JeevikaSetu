@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Waves, Shield, Eye, Type, Globe, Volume2 } from 'lucide-react';
+import { Waves, Shield, Sun, Moon, Type, Globe, Volume2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAccessibility } from '../context/AccessibilityContext.js';
 import { Language } from '../i18n/index.js';
@@ -67,19 +67,29 @@ export const CitizenHeader: React.FC = () => {
             </span>
           </button>
 
-          {/* High Contrast Toggle */}
+          {/* Theme Mode Toggle (Replaces Eye Icon) */}
           <button
             type="button"
             onClick={toggleHighContrast}
-            className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs active:scale-95 ${
               highContrast
-                ? 'bg-slate-900 text-yellow-300 border-slate-900'
-                : 'text-slate-600 hover:bg-slate-100 border-slate-200'
+                ? 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700'
+                : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-300'
             }`}
-            title="उच्च कंट्रास्ट मोड बदलें (High Contrast)"
-            aria-label="Toggle high contrast"
+            title={highContrast ? 'लाइट मोड में बदलें (Switch to Light Theme)' : 'डार्क / नाइट थीम में बदलें (Switch to Dark Theme)'}
+            aria-label="Toggle theme mode"
           >
-            <Eye className="w-4 h-4" />
+            {highContrast ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="text-[11px]">लाइट</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-slate-700" />
+                <span className="text-[11px]">डार्क</span>
+              </>
+            )}
           </button>
 
           {/* Language Selector */}
