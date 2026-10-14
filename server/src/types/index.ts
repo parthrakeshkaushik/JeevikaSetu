@@ -38,6 +38,8 @@ export const CitizenReportSchema = z.object({
   gpsLatitude: z.number().nullable().optional(),
   gpsLongitude: z.number().nullable().optional(),
   photoUrls: z.array(z.string()).nullable().optional(),
+  audioSimulationUrl: z.string().nullable().optional(),
+  audioUrl: z.string().nullable().optional(),
 });
 
 export const StatusUpdateSchema = z.object({

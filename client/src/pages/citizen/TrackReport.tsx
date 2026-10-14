@@ -227,6 +227,22 @@ export const TrackReport: React.FC = () => {
             </div>
           </div>
 
+          {/* Recorded Voice Note Playback */}
+          {report.audioSimulationUrl && (
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl space-y-2 text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                  आपकी दर्ज की गई आवाज (Your Recorded Voice Note):
+                </span>
+                <span className="text-[11px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">
+                  ऑडियो रिकॉर्डिंग
+                </span>
+              </div>
+              <audio controls src={report.audioSimulationUrl} className="w-full mt-1" />
+            </div>
+          )}
+
           {/* Transparent Progress Timeline */}
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">

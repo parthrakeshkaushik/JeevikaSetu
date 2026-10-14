@@ -278,6 +278,25 @@ export const CaseDetail: React.FC = () => {
           </div>
         </div>
 
+        {/* Direct Citizen Voice Recording Player */}
+        {report.audioSimulationUrl && (
+          <div className="p-4 bg-emerald-50 border-2 border-emerald-400 rounded-2xl space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                नागरिक का मूल वॉइस संदेश (Original Citizen Voice Recording):
+              </span>
+              <span className="text-[11px] bg-emerald-200 text-emerald-950 font-bold px-2 py-0.5 rounded">
+                🔴 लाइव ऑडियो उपलब्ध
+              </span>
+            </div>
+            <audio controls src={report.audioSimulationUrl} className="w-full mt-1 rounded-lg" />
+            <p className="text-[11px] text-emerald-800 italic">
+              * अधिकारी नागरिक द्वारा फील्ड से रिकॉर्ड की गई वास्तविक आवाज यहाँ सुन सकते हैं।
+            </p>
+          </div>
+        )}
+
         {/* Citizen Statement & Original Voice Transcript */}
         <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
           <div className="flex items-center justify-between">

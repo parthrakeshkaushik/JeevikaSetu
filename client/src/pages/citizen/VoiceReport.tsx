@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Sparkles,
   ShieldAlert,
+  Volume2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -31,6 +32,7 @@ export const VoiceReport: React.FC = () => {
   const [isVoiceReport, setIsVoiceReport] = useState<boolean>(true);
   const [rawTranscript, setRawTranscript] = useState<string>('');
   const [confirmedTranscript, setConfirmedTranscript] = useState<string>('');
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isEditingTranscript, setIsEditingTranscript] = useState<boolean>(false);
 
   // Extracted AI Entities
@@ -99,10 +101,13 @@ export const VoiceReport: React.FC = () => {
   }, [district, block, geographyData]);
 
   // Handle voice recording completed
-  const handleTranscriptReady = async (text: string, isVoice: boolean) => {
+  const handleTranscriptReady = async (text: string, isVoice: boolean, incomingAudioUrl?: string) => {
     setRawTranscript(text);
     setConfirmedTranscript(text);
     setIsVoiceReport(isVoice);
+    if (incomingAudioUrl) {
+      setAudioUrl(incomingAudioUrl);
+    }
     setStep(2); // Go to confirm transcript step
 
     // Call AI extraction
@@ -175,6 +180,8 @@ export const VoiceReport: React.FC = () => {
         disruptionDurationDays: disruptionDurationDays && !isNaN(Number(disruptionDurationDays)) ? Number(disruptionDurationDays) : 5,
         householdSize: householdSize || 5,
         vulnerabilityFlags: vulnerabilityFlags.length > 0 ? vulnerabilityFlags : undefined,
+        audioSimulationUrl: audioUrl || undefined,
+        audioUrl: audioUrl || undefined,
       };
 
       const res = await api.submitReport(payload);
@@ -269,6 +276,25 @@ export const VoiceReport: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Direct Recorded Audio Player */}
+          {audioUrl && (
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-400 rounded-2xl space-y-2 shadow-xs text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  आपकी मूल आवाज रिकॉर्डिंग (Your Recorded Voice Note):
+                </span>
+                <span className="text-[11px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">
+                  ऑडियो तैयार
+                </span>
+              </div>
+              <audio controls src={audioUrl} className="w-full mt-1 rounded-lg" />
+              <p className="text-[11px] text-emerald-800 italic">
+                * यह मूल आवाज रिकॉर्डिंग सीधे प्रशासनिक अधिकारियों (BDO / DM) को सुनाई देगी।
+              </p>
+            </div>
+          )}
 
           {/* AI Category Extraction Notice */}
           {aiSuggestions && (

@@ -102,6 +102,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
         gpsLatitude: validatedData.gpsLatitude || null,
         gpsLongitude: validatedData.gpsLongitude || null,
         photoUrls: validatedData.photoUrls ? JSON.stringify(validatedData.photoUrls) : null,
+        audioSimulationUrl: validatedData.audioSimulationUrl || validatedData.audioUrl || (body as any).audioUrl || null,
         priorityScore: priority.score,
         priorityLevel: priority.level,
         priorityRationale: priority.rationale,
@@ -294,6 +295,7 @@ router.get('/track', async (req: Request, res: Response): Promise<void> => {
         verifiedAt: report.verifiedAt,
         verificationOutcome: latestVerification ? latestVerification.outcome : null,
         recoveryFollowUpsCount: report.followUpActions.length,
+        audioSimulationUrl: report.audioSimulationUrl,
       },
     });
   } catch (error: any) {
