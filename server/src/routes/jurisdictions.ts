@@ -20,11 +20,16 @@ router.get('/directory', async (req: Request, res: Response): Promise<void> => {
   try {
     const { district } = req.query;
     const where: any = { isActive: true };
-    if (district) where.district = district as string;
+    if (district && district !== 'ALL') {
+      where.OR = [
+        { district: district as string },
+        { district: 'Bihar' },
+      ];
+    }
 
     const directory = await prisma.serviceDirectoryEntry.findMany({
       where,
-      orderBy: { department: 'asc' },
+      orderBy: [{ district: 'asc' }, { department: 'asc' }],
     });
 
     res.json({
