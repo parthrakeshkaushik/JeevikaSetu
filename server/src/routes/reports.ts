@@ -334,20 +334,25 @@ router.get('/my-reports', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const orConditions: any[] = [];
+    const whereClause: any = {};
     if (email) {
-      orConditions.push({ citizenEmail: email });
-    }
-    if (phone) {
+      // Citizen authenticated with Google/Gmail - match strictly by their registered email
+      whereClause.citizenEmail = email;
+    } else if (phone) {
       const cleanP = phone.replace(/\D/g, '');
       if (cleanP.length >= 7) {
-        orConditions.push({ citizenPhone: cleanP });
-        orConditions.push({ citizenPhone: { contains: cleanP.slice(-10) } });
+        whereClause.citizenPhone = { contains: cleanP.slice(-10) };
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'वैध फोन नंबर आवश्यक है / Valid phone number required',
+        });
+        return;
       }
     }
 
     let reports = await prisma.livelihoodReport.findMany({
-      where: { OR: orConditions },
+      where: whereClause,
       include: {
         assignedToUser: {
           select: {

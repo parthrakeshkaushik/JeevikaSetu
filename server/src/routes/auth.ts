@@ -91,7 +91,7 @@ router.post('/citizen-google-login', async (req: Request, res: Response): Promis
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = (fullName && fullName.trim()) || cleanEmail.split('@')[0] || 'नागरिक (Resident)';
-    const cleanPhone = phone ? phone.toString().replace(/\D/g, '') : '9876543210';
+    const cleanPhone = phone ? phone.toString().replace(/\D/g, '') : null;
 
     // Find or create citizen user in database
     let user = await prisma.user.findUnique({
@@ -104,7 +104,7 @@ router.post('/citizen-google-login', async (req: Request, res: Response): Promis
           email: cleanEmail,
           passwordHash: 'GOOGLE_OAUTH_CITIZEN',
           fullName: cleanName,
-          phone: cleanPhone,
+          phone: cleanPhone || null,
           role: 'CITIZEN',
           department: 'Civilian',
           jurisdictionType: 'DISTRICT',
@@ -118,7 +118,7 @@ router.post('/citizen-google-login', async (req: Request, res: Response): Promis
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      phone: user.phone || cleanPhone,
+      phone: user.phone || cleanPhone || null,
       role: 'CITIZEN',
       avatarUrl: avatarUrl || null,
       jurisdictionName: user.jurisdictionName || 'Supaul',
