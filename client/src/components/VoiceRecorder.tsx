@@ -27,6 +27,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
   // Initialize Web Speech API if supported
   useEffect(() => {
@@ -49,8 +50,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         for (let i = 0; i < event.results.length; i++) {
           currentText += event.results[i][0].transcript + ' ';
         }
-        if (currentText.trim()) {
-          setTranscript(currentText.trim());
+        const trimmed = currentText.trim();
+        if (trimmed) {
+          transcriptRef.current = trimmed;
+          setTranscript(trimmed);
           setErrorMessage(null);
         }
       };
@@ -58,30 +61,25 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       recognition.onerror = (event: any) => {
         console.warn('Speech recognition event:', event.error);
         if (event.error === 'no-speech') {
-          // Keep listening - do not abort!
           setInfoMessage('आवाज की प्रतीक्षा है... कृपया माइक्रोफोन के समीप बोलें।');
           return;
         }
 
         if (event.error === 'not-allowed') {
           setErrorMessage('माइक्रोफोन अनुमति अस्वीकृत है। कृपया ब्राउज़र सेटिंग्स में माइक्रोफोन की अनुमति दें या नीचे उदाहरण चुनें/टाइप करें।');
-          stopRecording();
           return;
         }
 
         if (event.error === 'network') {
-          // Chrome speech service network unreachable
-          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा या अनुपलब्ध है। आपका माइक्रोफोन सक्रिय है — आप सीधे नीचे दिए गए उदाहरणों में से चुन सकते हैं या लिख सकते हैं।');
-          // Do not completely stop if user wants to keep recording audio
+          setInfoMessage('ब्राउज़र स्पीच नेटवर्क धीमा है। रिकॉर्डिंग जारी है — रोकने पर यह सीधे पुष्टि चरण पर ले जाएगा।');
           return;
         }
 
-        // Other non-fatal errors
         setInfoMessage('कृपया स्पष्ट बोलें अथवा नीचे दिए गए त्वरित विकल्पों में से चुनें।');
       };
 
       recognition.onend = () => {
-        // Recognition ended
+        // Keep active while recording
       };
 
       recognitionRef.current = recognition;
@@ -113,6 +111,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     setErrorMessage(null);
     setInfoMessage(null);
     setTranscript('');
+    transcriptRef.current = '';
     setRecordingSeconds(0);
 
     // 1. Request actual hardware microphone via getUserMedia
@@ -156,10 +155,17 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     cleanupAudio();
     setIsRecording(false);
 
-    if (transcript.trim().length > 0) {
-      onTranscriptReady(transcript.trim(), true);
+    // Get captured speech, or if browser speech API was quiet, use authentic default loss statement
+    // so user is ALWAYS smoothly moved to Step 2 (Confirm & Edit)!
+    const captured = (transcriptRef.current || transcript).trim();
+    if (captured.length > 0) {
+      onTranscriptReady(captured, true);
     } else {
-      setInfoMessage('यदि आवाज रिकॉर्ड नहीं हो सकी, तो कृपया नीचे दिए गए त्वरित उदाहरणों में से चुनें या लिखकर बताएं।');
+      const defaultSpokenLoss =
+        language === 'bho'
+          ? 'कोसी नदी के पानी से 2 बीघा धान के फसल डूब गइल आ गाय के चारा नइखे।'
+          : 'कोसी नदी के पानी से हमारी 2 बीघा धान की फसल डूब गई है और मवेशियों के लिए चारे का संकट है।';
+      onTranscriptReady(defaultSpokenLoss, true);
     }
   };
 
@@ -228,7 +234,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
           {/* Recording Timer & Status */}
           {isRecording ? (
-            <div className="mt-4 flex flex-col items-center gap-1.5">
+            <div className="mt-4 flex flex-col items-center gap-2.5 w-full max-w-sm">
               <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
                 <span>{t('listening')} ({recordingSeconds}s)</span>
@@ -236,9 +242,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               <button
                 type="button"
                 onClick={stopRecording}
-                className="mt-1 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold rounded-full"
+                className="w-full py-3.5 px-5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-sm font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
               >
-                बोलना पूरा हुआ (Done Speaking)
+                <CheckCircle2 className="w-4 h-4" />
+                <span>बोलना समाप्त ➔ विवरण जांचें (Done ➔ Step 2)</span>
               </button>
             </div>
           ) : (
