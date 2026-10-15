@@ -20,10 +20,12 @@ import {
   KeyRound,
   X,
   ExternalLink,
+  Shield,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
 import { useCitizenAuth } from '../../context/CitizenAuthContext.js';
+import { useAuth } from '../../context/AuthContext.js';
 import { AudioPlayerButton } from '../../components/AudioPlayerButton.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
 import { api } from '../../api/client.js';
@@ -40,6 +42,7 @@ export const CitizenHome: React.FC = () => {
     isSupabaseReady,
     configureSupabaseAnonKey,
   } = useCitizenAuth();
+  const { user: adminUser, isAuthenticated: isAdminAuthenticated, logout: adminLogout } = useAuth();
   const navigate = useNavigate();
 
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
@@ -147,9 +150,47 @@ export const CitizenHome: React.FC = () => {
   return (
     <div className="min-h-[85vh] py-6 px-4 max-w-2xl mx-auto space-y-6">
       {/* ======================================================== */}
-      {/* 1. NOT AUTHENTICATED STATE: 1-Click Google Account Gate  */}
+      {/* 1. SINGLE-MODE ENFORCEMENT: Active Mode Checks           */}
       {/* ======================================================== */}
-      {!isCitizenAuthenticated ? (
+      {isAdminAuthenticated && adminUser ? (
+        /* Administrator Mode Banner - Never show second mode (resident) login gate */
+        <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-amber-300 flex items-center justify-center mx-auto shadow-md">
+            <Shield className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-950 uppercase tracking-wide">
+              सक्रिय प्रशासनिक मोड (Administrator Mode)
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white pt-2">
+              नमस्ते, {adminUser.fullName}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300">
+              आप [{adminUser.role}] {adminUser.jurisdictionName || 'बिहार राज्य'} के रूप में प्रशासनिक सत्र में लॉगिन हैं।
+            </p>
+            <p className="text-xs text-slate-400 pt-1">
+              नागरिक के रूप में लॉगिन करने हेतु पहले प्रशासनिक सत्र से लॉगआउट करें।
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              to="/admin/dashboard"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2"
+            >
+              <Shield className="w-4 h-4 text-amber-300" />
+              <span>प्रशासनिक डैशबोर्ड खोलें (Open Admin Dashboard)</span>
+            </Link>
+            <button
+              type="button"
+              onClick={adminLogout}
+              className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>प्रशासनिक लॉगआउट (Logout Admin)</span>
+            </button>
+          </div>
+        </div>
+      ) : !isCitizenAuthenticated ? (
         <div className="space-y-6">
           {/* Top Banner & Audio Assistant */}
           <div className="text-center space-y-3">

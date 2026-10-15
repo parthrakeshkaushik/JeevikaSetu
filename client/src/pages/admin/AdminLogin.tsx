@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Key, Mail, AlertCircle, ArrowRight, Building2, UserCheck, ChevronDown, Sparkles } from 'lucide-react';
+import { Shield, Key, Mail, AlertCircle, ArrowRight, Building2, UserCheck, ChevronDown, Sparkles, LogOut } from 'lucide-react';
 import { useAuth, AdminUser } from '../../context/AuthContext.js';
+import { useCitizenAuth } from '../../context/CitizenAuthContext.js';
 
 // Predefined Bihar Administrative Jurisdictions for Flood Coordination
 const DISTRICT_OPTIONS = [
@@ -14,8 +15,16 @@ const DISTRICT_OPTIONS = [
 ];
 
 export const AdminLogin: React.FC = () => {
-  const { login, quickLoginUser, demoUsers } = useAuth();
+  const { login, quickLoginUser, demoUsers, isAuthenticated: isAdminAuthenticated } = useAuth();
+  const { citizen, isCitizenAuthenticated, logoutCitizen } = useCitizenAuth();
   const navigate = useNavigate();
+
+  // If already logged in as administrator, navigate directly to dashboard
+  useEffect(() => {
+    if (isAdminAuthenticated) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAdminAuthenticated, navigate]);
 
   // Clean 2-Tier Selection: District -> Designated Official (No Department Clutter)
   const [selectedDistrict, setSelectedDistrict] = useState<string>('STATE');
@@ -134,6 +143,52 @@ export const AdminLogin: React.FC = () => {
       setError(res.message || 'अमान्य ईमेल या पासवर्ड। कृपया पुनः जांचें।');
     }
   };
+
+  // If already logged in as a resident (citizen), block second mode login
+  if (isCitizenAuthenticated && citizen) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center py-10 px-4">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-amber-200 dark:border-amber-800 shadow-xl space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+            <Shield className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 uppercase">
+              सक्रिय नागरिक सत्र (Active Resident Session)
+            </span>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white pt-2">
+              आप नागरिक के रूप में लॉगिन हैं
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {citizen.fullName} ({citizen.email})
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-300 pt-2 leading-relaxed">
+              एक समय में केवल एक मोड में लॉगिन रह सकते हैं। प्रशासनिक लॉगिन करने के लिए पहले नागरिक सत्र से लॉगआउट करें।
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2.5 pt-2">
+            <Link
+              to="/"
+              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center gap-1.5"
+            >
+              <span>नागरिक पोर्टल पर जाएं (Go to Resident Portal)</span>
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                await logoutCitizen();
+              }}
+              className="w-full py-3 px-4 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 font-semibold rounded-xl border border-slate-200 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>नागरिक सत्र से लॉगआउट करें (Logout & Switch)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-10 px-4">

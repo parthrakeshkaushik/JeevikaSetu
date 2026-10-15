@@ -4,12 +4,14 @@ import { Waves, Shield, Sun, Moon, Type, Globe, Volume2, LogOut, User } from 'lu
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAccessibility } from '../context/AccessibilityContext.js';
 import { useCitizenAuth } from '../context/CitizenAuthContext.js';
+import { useAuth } from '../context/AuthContext.js';
 import { Language } from '../i18n/index.js';
 
 export const CitizenHeader: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { highContrast, toggleHighContrast, textSize, setTextSize, isSpeaking, stopSpeaking } = useAccessibility();
   const { citizen, isCitizenAuthenticated, logoutCitizen } = useCitizenAuth();
+  const { user: adminUser, isAuthenticated: isAdminAuthenticated, logout: adminLogout } = useAuth();
   const location = useLocation();
 
   const handleTextSizeCycle = () => {
@@ -69,7 +71,7 @@ export const CitizenHeader: React.FC = () => {
             </span>
           </button>
 
-          {/* Theme Mode Toggle (Replaces Eye Icon) */}
+          {/* Theme Mode Toggle */}
           <button
             type="button"
             onClick={toggleHighContrast}
@@ -108,8 +110,8 @@ export const CitizenHeader: React.FC = () => {
             </select>
           </div>
 
-          {/* Logged in Citizen Profile & Quick Sign Out */}
-          {isCitizenAuthenticated && citizen && (
+          {/* Mode 1: Logged in Citizen (Resident) Profile & Sign Out - NO Admin Login */}
+          {isCitizenAuthenticated && citizen ? (
             <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-700">
               <div
                 className="flex items-center gap-1.5 bg-blue-50/80 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-lg px-2 py-1 max-w-[130px] sm:max-w-[170px]"
@@ -141,17 +143,38 @@ export const CitizenHeader: React.FC = () => {
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
+          ) : isAdminAuthenticated && adminUser ? (
+            /* Mode 2: Logged in Administrator Profile & Dashboard shortcut - NO Resident Login */
+            <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-700">
+              <Link
+                to="/admin/dashboard"
+                className="flex items-center gap-1.5 bg-slate-800 text-amber-300 rounded-lg px-2.5 py-1 text-xs font-bold hover:bg-slate-700 transition-colors shadow-2xs"
+                title={`प्रशासनिक लॉगिन: [${adminUser.role}] ${adminUser.fullName}`}
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span className="truncate max-w-[120px] sm:max-w-[160px]">डैशबोर्ड ({adminUser.role})</span>
+              </Link>
+              <button
+                type="button"
+                onClick={adminLogout}
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                title="प्रशासनिक लॉगआउट"
+                aria-label="Admin Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Unauthenticated State: Show discreet Administrative Login button */
+            <Link
+              to="/admin/login"
+              className="ml-1 p-2 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-xs border border-transparent hover:border-blue-200 transition-colors flex items-center gap-1"
+              title="प्रशासनिक अधिकारी लॉगिन (Admin Login)"
+            >
+              <Shield className="w-4 h-4 text-slate-600" />
+              <span className="hidden md:inline font-medium">प्रशासन</span>
+            </Link>
           )}
-
-          {/* Administrative Portal Link (Discreet) */}
-          <Link
-            to="/admin/login"
-            className="ml-1 p-2 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-xs border border-transparent hover:border-blue-200 transition-colors flex items-center gap-1"
-            title="प्रशासनिक अधिकारी लॉगिन (Admin Login)"
-          >
-            <Shield className="w-4 h-4 text-slate-600" />
-            <span className="hidden md:inline font-medium">प्रशासन</span>
-          </Link>
         </div>
       </div>
     </header>
