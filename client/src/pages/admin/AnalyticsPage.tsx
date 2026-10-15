@@ -45,13 +45,13 @@ export const AnalyticsPage: React.FC = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
       'Metric,Value\n' +
-      `Total Reports,${analytics.kpis.totalReports}\n` +
-      `Unique Households,${analytics.kpis.uniqueHouseholdsCount}\n` +
-      `Pending Verification,${analytics.kpis.pendingVerification}\n` +
-      `Verified Cases,${analytics.kpis.totalVerified}\n` +
-      `Recovery Referred,${analytics.kpis.totalRecoveryReferred}\n` +
-      `Overdue Cases (>48h),${analytics.kpis.overdueCases}\n` +
-      `Self-Reported Estimated Losses,${analytics.kpis.totalSelfReportedLoss}\n`;
+      `Total Reports,${analytics?.kpis?.totalReports || 0}\n` +
+      `Unique Households,${analytics?.kpis?.uniqueHouseholdsCount || 0}\n` +
+      `Pending Verification,${analytics?.kpis?.pendingVerification || 0}\n` +
+      `Verified Cases,${analytics?.kpis?.totalVerified || 0}\n` +
+      `Recovery Referred,${analytics?.kpis?.totalRecoveryReferred || 0}\n` +
+      `Overdue Cases (>48h),${analytics?.kpis?.overdueCases || 0}\n` +
+      `Self-Reported Estimated Losses,${analytics?.kpis?.totalSelfReportedLoss || 0}\n`;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -64,19 +64,19 @@ export const AnalyticsPage: React.FC = () => {
 
   const COLORS = ['#2563eb', '#0d9488', '#ea580c', '#e11d48', '#8b5cf6', '#059669'];
 
-  const priorityPieData = analytics
+  const priorityPieData = analytics?.priorityCounts
     ? [
-        { name: 'अति-प्राथमिक (URGENT)', value: analytics.priorityCounts.URGENT, color: '#e11d48' },
-        { name: 'उच्च (HIGH)', value: analytics.priorityCounts.HIGH, color: '#ea580c' },
-        { name: 'मध्यम (MEDIUM)', value: analytics.priorityCounts.MEDIUM, color: '#2563eb' },
-        { name: 'सामान्य (LOW)', value: analytics.priorityCounts.LOW, color: '#64748b' },
+        { name: 'अति-प्राथमिक (URGENT)', value: analytics.priorityCounts.URGENT || 0, color: '#e11d48' },
+        { name: 'उच्च (HIGH)', value: analytics.priorityCounts.HIGH || 0, color: '#ea580c' },
+        { name: 'मध्यम (MEDIUM)', value: analytics.priorityCounts.MEDIUM || 0, color: '#2563eb' },
+        { name: 'सामान्य (LOW)', value: analytics.priorityCounts.LOW || 0, color: '#64748b' },
       ].filter((d) => d.value > 0)
     : [];
 
-  const modalityData = analytics
+  const modalityData = analytics?.modality
     ? [
-        { name: 'आवाज द्वारा दर्ज (Voice)', value: analytics.modality.voiceReports, color: '#0284c7' },
-        { name: 'लिखित रूप में दर्ज (Text)', value: analytics.modality.textReports, color: '#94a3b8' },
+        { name: 'आवाज द्वारा दर्ज (Voice)', value: analytics.modality.voiceReports || 0, color: '#0284c7' },
+        { name: 'लिखित रूप में दर्ज (Text)', value: analytics.modality.textReports || 0, color: '#94a3b8' },
       ]
     : [];
 

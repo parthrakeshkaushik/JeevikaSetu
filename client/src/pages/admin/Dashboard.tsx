@@ -131,7 +131,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* 4 Core KPIs */}
-      {analytics && (
+      {analytics?.kpis && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Reports vs Households */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
@@ -140,11 +140,11 @@ export const Dashboard: React.FC = () => {
               <FileText className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              {analytics.kpis.totalReports}
+              {analytics.kpis.totalReports ?? 0}
             </div>
             <div className="text-[11px] text-slate-500 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-slate-400" />
-              <span>अद्वितीय परिवार: <strong>{analytics.kpis.uniqueHouseholdsCount}</strong></span>
+              <span>अद्वितीय परिवार: <strong>{analytics.kpis.uniqueHouseholdsCount ?? 0}</strong></span>
             </div>
           </div>
 
@@ -155,11 +155,11 @@ export const Dashboard: React.FC = () => {
               <Clock className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-amber-600">
-              {analytics.kpis.pendingVerification}
+              {analytics.kpis.pendingVerification ?? 0}
             </div>
             <div className="text-[11px] text-amber-800 flex items-center gap-1">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-              <span>48 घंटे से अधिक विलंबित: <strong>{analytics.kpis.overdueCases}</strong></span>
+              <span>48 घंटे से अधिक विलंबित: <strong>{analytics.kpis.overdueCases ?? 0}</strong></span>
             </div>
           </div>
 
@@ -170,10 +170,10 @@ export const Dashboard: React.FC = () => {
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600">
-              {analytics.kpis.totalVerified}
+              {analytics.kpis.totalVerified ?? 0}
             </div>
             <div className="text-[11px] text-emerald-800 flex items-center gap-1">
-              <span>पुनर्प्राप्ति अग्रसारित: <strong>{analytics.kpis.totalRecoveryReferred}</strong></span>
+              <span>पुनर्प्राप्ति अग्रसारित: <strong>{analytics.kpis.totalRecoveryReferred ?? 0}</strong></span>
             </div>
           </div>
 
@@ -194,7 +194,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Visual Analytics Charts */}
-      {analytics && (
+      {analytics?.categoryChartData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Livelihood Category Breakdown Bar Chart */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">

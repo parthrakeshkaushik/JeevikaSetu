@@ -92,8 +92,8 @@ export const ServiceDirectory: React.FC = () => {
     api
       .getServiceDirectory(queryDist)
       .then((res) => {
-        if (res.success && res.directory) {
-          setDirectory(res.directory);
+        if (res && res.success && (res.directory || res.entries)) {
+          setDirectory(res.directory || res.entries);
         }
       })
       .catch((err) => console.error('Error fetching directory:', err))
