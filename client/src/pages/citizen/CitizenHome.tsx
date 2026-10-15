@@ -21,6 +21,9 @@ import {
   X,
   ExternalLink,
   Shield,
+  Cloud,
+  Laptop,
+  Smartphone,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -29,6 +32,7 @@ import { useAuth } from '../../context/AuthContext.js';
 import { AudioPlayerButton } from '../../components/AudioPlayerButton.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
 import { api } from '../../api/client.js';
+import { isSupabaseConfigured, getSupabaseClient } from '../../supabase.js';
 
 export const CitizenHome: React.FC = () => {
   const { t, language } = useLanguage();
@@ -76,6 +80,57 @@ export const CitizenHome: React.FC = () => {
     if (isCitizenAuthenticated && citizen?.email) {
       loadCitizenReports();
     }
+  }, [isCitizenAuthenticated, citizen?.email]);
+
+  // Realtime multi-device cloud synchronization & active window focus listener
+  useEffect(() => {
+    if (!isCitizenAuthenticated || !citizen?.email) return;
+
+    // Auto-sync when returning to tab/app (e.g. submitted on phone, now viewing laptop)
+    const handleSyncOnActive = () => {
+      if (document.visibilityState === 'visible') {
+        loadCitizenReports();
+      }
+    };
+
+    window.addEventListener('focus', handleSyncOnActive);
+    document.addEventListener('visibilitychange', handleSyncOnActive);
+
+    // Supabase Realtime channel subscription for instant cross-device updates
+    let channel: any = null;
+    try {
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        const safeChannelId = `sync-citizen-${citizen.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        channel = client
+          .channel(safeChannelId)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'LivelihoodReport',
+            },
+            () => {
+              loadCitizenReports();
+            }
+          )
+          .subscribe();
+      }
+    } catch (err) {
+      console.warn('Realtime channel listener notice:', err);
+    }
+
+    return () => {
+      window.removeEventListener('focus', handleSyncOnActive);
+      document.removeEventListener('visibilitychange', handleSyncOnActive);
+      if (channel) {
+        try {
+          const client = getSupabaseClient();
+          client.removeChannel(channel);
+        } catch {}
+      }
+    };
   }, [isCitizenAuthenticated, citizen?.email]);
 
   const loadCitizenReports = async () => {
@@ -378,6 +433,40 @@ export const CitizenHome: React.FC = () => {
                 <span>लॉगआउट</span>
               </button>
             </div>
+          </div>
+
+          {/* Multi-Device Cloud Sync Active Indicator & Instant Re-sync */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-blue-950/40 border-2 border-emerald-200/80 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0 shadow-2xs">
+                <Cloud className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm">
+                    मल्टी-डिवाइस क्लाउड सिंक सक्रिय (All Devices Synced)
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    लाइव सिंक
+                  </span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs">
+                  आपका खाता (<span className="font-mono font-semibold text-emerald-800 dark:text-emerald-300">{citizen?.email}</span>) आपके फोन, लैपटॉप व अन्य सभी डिवाइसों में स्वतः सिंक है। किसी भी डिवाइस से आवेदन दर्ज करें, सभी जगह दिखाई देगा।
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => loadCitizenReports()}
+              disabled={isLoadingReports}
+              className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-200 font-bold rounded-xl border border-emerald-300 dark:border-emerald-700 shadow-2xs transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer ml-auto sm:ml-0"
+              title="क्लाउड से डेटा पुनः सिंक करें"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingReports ? 'animate-spin text-emerald-600' : ''}`} />
+              <span>{isLoadingReports ? 'सिंक जारी है...' : 'डेटा सिंक करें (Sync Now)'}</span>
+            </button>
           </div>
 
           {/* Metric Bar: Requests Statistics */}

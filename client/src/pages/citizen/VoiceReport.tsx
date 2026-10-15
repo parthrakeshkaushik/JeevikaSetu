@@ -69,6 +69,15 @@ export const VoiceReport: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Sync state if citizen profile hydrates after mount
+  useEffect(() => {
+    if (citizen) {
+      if (!citizenName && citizen.fullName) setCitizenName(citizen.fullName);
+      if (!citizenEmail && citizen.email) setCitizenEmail(citizen.email);
+      if (!citizenPhone && citizen.phone) setCitizenPhone(citizen.phone);
+    }
+  }, [citizen]);
+
   // Fetch authentic Bihar geography on load
   useEffect(() => {
     api.getGeography()

@@ -359,9 +359,23 @@ export const api = {
   },
 
   async getMyReports(email?: string, phone?: string) {
+    let cleanEmail = email ? email.toLowerCase().trim() : '';
+    let cleanPhone = phone ? phone.trim() : '';
+
+    if (!cleanEmail) {
+      try {
+        const storedProfile = localStorage.getItem('jeevikasetu_citizen_profile');
+        if (storedProfile) {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed.email) cleanEmail = parsed.email.toLowerCase().trim();
+          if (!cleanPhone && parsed.phone) cleanPhone = parsed.phone.trim();
+        }
+      } catch {}
+    }
+
     const params = new URLSearchParams();
-    if (email) params.append('email', email);
-    if (phone) params.append('phone', phone);
+    if (cleanEmail) params.append('email', cleanEmail);
+    if (cleanPhone) params.append('phone', cleanPhone);
     const qs = params.toString() ? `?${params.toString()}` : '';
 
     const res = await safeFetchJson(`/api/reports/my-reports${qs}`, {
@@ -372,26 +386,137 @@ export const api = {
       return res;
     }
 
-    // Isolated by citizen email / phone from genuine reports
-    const allReports = await fetchAllAvailableReports();
-    const filtered = allReports.filter((r) => {
-      if (email && r.citizenEmail) return r.citizenEmail.toLowerCase() === email.toLowerCase();
-      if (phone && r.citizenPhone) return r.citizenPhone.includes(phone.slice(-10));
-      return false;
-    });
+    const reportMap = new Map<string, any>();
+
+    // 1. Direct Cloud Fetch from Supabase for this Citizen's Account across all devices
+    if (isSupabaseConfigured() && (cleanEmail || cleanPhone)) {
+      try {
+        const client = getSupabaseClient();
+        let query = client
+          .from('LivelihoodReport')
+          .select('*')
+          .order('submittedAt', { ascending: false });
+
+        if (cleanEmail && cleanPhone) {
+          query = query.or(`citizenEmail.ilike.${cleanEmail},citizenPhone.ilike.%${cleanPhone.slice(-10)}%`);
+        } else if (cleanEmail) {
+          query = query.ilike('citizenEmail', cleanEmail);
+        } else if (cleanPhone) {
+          query = query.ilike('citizenPhone', `%${cleanPhone.slice(-10)}%`);
+        }
+
+        const { data: cloudData, error } = await query;
+        if (!error && Array.isArray(cloudData)) {
+          for (const item of cloudData) {
+            let cats: string[] = ['CROP'];
+            if (Array.isArray(item.livelihoodCategories)) {
+              cats = item.livelihoodCategories;
+            } else if (typeof item.livelihoodCategories === 'string') {
+              try {
+                cats = JSON.parse(item.livelihoodCategories);
+              } catch {
+                cats = [item.livelihoodCategories];
+              }
+            }
+
+            const r = {
+              ...item,
+              livelihoodCategories: cats,
+              statusMessage: item.statusMessage || {
+                hi: item.status === 'VERIFIED' ? 'आपकी रिपोर्ट का सत्यापन पूर्ण हो गया है।' : 'आपकी रिपोर्ट समीक्षाधीन है।',
+                bho: item.status === 'VERIFIED' ? 'रउरा रिपोर्ट के जांच पूरा हो गइल बा।' : 'रउरा रिपोर्ट के जांच चल रहल बा।',
+                en: item.status === 'VERIFIED' ? 'Verification completed.' : 'Under review.',
+              },
+              forwardedTo: item.forwardedTo || {
+                officeName: `प्रखंड विकास पदाधिकारी (BDO) कार्यालय, ${item.block || 'Nirmali'}`,
+                districtOffice: `जिला पदाधिकारी (DM) आपदा नियंत्रण कक्ष, ${item.district || 'Supaul'}`,
+                department: cats.includes('CROP') ? 'कृषि विभाग (Department of Agriculture, Bihar)' : 'आपदा राहत एवं आजीविका कोषांग',
+                scheme: 'बाढ़ आजीविका सुरक्षा सहायता',
+                assignedOfficer: 'प्रखंड आपदा राहत समन्वय दल (Block Relief Task Force)',
+                currentStage: item.status === 'VERIFIED' ? 'भौतिक सत्यापन उपरांत राहत सूची में स्वीकृत' : 'प्रखंड स्तर पर सत्यापन व समीक्षा जारी',
+              },
+            };
+            const key = r.reportNumber || r.id;
+            reportMap.set(key, r);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase getMyReports query notice:', err);
+      }
+    }
+
+    // 2. Fetch and merge any local submissions stored on this device
+    try {
+      const stored = localStorage.getItem('jeevikasetu_citizen_reports');
+      if (stored) {
+        const localList: any[] = JSON.parse(stored);
+        for (const lr of localList) {
+          const matchMail = cleanEmail && lr.citizenEmail && lr.citizenEmail.toLowerCase().trim() === cleanEmail;
+          const matchPhone = cleanPhone && lr.citizenPhone && lr.citizenPhone.includes(cleanPhone.slice(-10));
+          if (matchMail || matchPhone) {
+            const key = lr.reportNumber || lr.id;
+            if (!reportMap.has(key)) {
+              reportMap.set(key, lr);
+              // Auto-sync to Supabase cloud in background so other devices immediately receive it
+              if (isSupabaseConfigured()) {
+                const client = getSupabaseClient();
+                Promise.resolve(client.from('LivelihoodReport').insert({
+                  id: lr.id || undefined,
+                  reportNumber: lr.reportNumber,
+                  citizenName: lr.citizenName || 'बाढ़ पीड़ित नागरिक',
+                  citizenPhone: lr.citizenPhone || '',
+                  citizenEmail: cleanEmail || lr.citizenEmail || null,
+                  preferredLanguage: lr.preferredLanguage || 'hi',
+                  isVoiceReport: Boolean(lr.isVoiceReport),
+                  confirmedTranscript: lr.confirmedTranscript || '',
+                  audioSimulationUrl: lr.audioSimulationUrl || null,
+                  district: lr.district || 'Supaul',
+                  block: lr.block || 'Nirmali',
+                  panchayat: lr.panchayat || 'Mahuwa',
+                  village: lr.village || 'Mahuwa',
+                  wardNumber: lr.wardNumber || null,
+                  livelihoodCategories: JSON.stringify(lr.livelihoodCategories || ['CROP']),
+                  lossDescription: lr.lossDescription || '',
+                  estimatedLossAmount: lr.estimatedLossAmount || 0,
+                  priorityScore: lr.priorityScore || 50,
+                  priorityLevel: lr.priorityLevel || 'MEDIUM',
+                  status: lr.status || 'SUBMITTED',
+                  submittedAt: lr.submittedAt || new Date().toISOString(),
+                })).catch(() => {});
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
+    const reports = Array.from(reportMap.values());
+    reports.sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+
+    // Cache latest merged list locally on this device
+    try {
+      localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(reports));
+    } catch (e) {}
+
+    const total = reports.length;
+    const verified = reports.filter(
+      (r) => r.status === 'VERIFIED' || r.status === 'PARTIALLY_VERIFIED' || r.status === 'ACTION_RECORDED'
+    ).length;
+    const inProgress = reports.filter((r) =>
+      ['AWAITING_REVIEW', 'ASSIGNED_FOR_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'REFERRED_FOR_RECOVERY', 'FOLLOWUP_IN_PROGRESS'].includes(r.status)
+    ).length;
+    const submitted = reports.filter((r) => r.status === 'SUBMITTED').length;
 
     return {
       success: true,
-      totalRequests: filtered.length,
+      totalRequests: total,
       summary: {
-        total: filtered.length,
-        verified: filtered.filter((r) => r.status === 'VERIFIED' || r.status === 'ACTION_RECORDED').length,
-        inProgress: filtered.filter((r) =>
-          ['AWAITING_REVIEW', 'ASSIGNED_FOR_VERIFICATION', 'REFERRED_FOR_RECOVERY', 'FOLLOWUP_IN_PROGRESS'].includes(r.status)
-        ).length,
-        submitted: filtered.filter((r) => r.status === 'SUBMITTED').length,
+        total,
+        verified,
+        inProgress,
+        submitted,
       },
-      reports: filtered,
+      reports,
     };
   },
 
@@ -410,6 +535,18 @@ export const api = {
         localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(existing));
       } catch (e) {}
       return res;
+    }
+
+    // Ensure citizen email is always attached so all devices of the user can sync
+    let citizenEmail = data.citizenEmail ? String(data.citizenEmail).toLowerCase().trim() : null;
+    if (!citizenEmail) {
+      try {
+        const storedProfile = localStorage.getItem('jeevikasetu_citizen_profile');
+        if (storedProfile) {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed.email) citizenEmail = String(parsed.email).toLowerCase().trim();
+        }
+      } catch {}
     }
 
     // Authentic report generation
@@ -449,7 +586,7 @@ export const api = {
       reportNumber,
       citizenName: data.citizenName || 'बाढ़ पीड़ित नागरिक',
       citizenPhone: data.citizenPhone || '',
-      citizenEmail: data.citizenEmail || null,
+      citizenEmail,
       preferredLanguage: data.preferredLanguage || 'hi',
       district: data.district || 'Supaul',
       block: data.block || 'Nirmali',
@@ -481,15 +618,15 @@ export const api = {
       audioSimulationUrl: data.audioSimulationUrl || data.audioUrl || null,
     };
 
-    // Store directly in Supabase table
+    // Store directly in Supabase table for instant multi-device availability
     try {
       if (isSupabaseConfigured()) {
         const client = getSupabaseClient();
         const dbPayload = {
           reportNumber: newReport.reportNumber,
           citizenName: newReport.citizenName,
-          citizenPhone: newReport.citizenPhone,
-          citizenEmail: newReport.citizenEmail,
+          citizenPhone: newReport.citizenPhone || '',
+          citizenEmail: newReport.citizenEmail || null,
           preferredLanguage: newReport.preferredLanguage,
           isVoiceReport: newReport.isVoiceReport,
           confirmedTranscript: newReport.confirmedTranscript,
@@ -510,13 +647,15 @@ export const api = {
         const { data: dbReport, error } = await client.from('LivelihoodReport').insert(dbPayload).select().single();
         if (!error && dbReport?.id) {
           newReport.id = dbReport.id;
+        } else if (error) {
+          console.warn('Supabase direct insert notice:', error);
         }
       }
     } catch (err) {
-      console.warn('Supabase direct insert note:', err);
+      console.warn('Supabase direct insert error:', err);
     }
 
-    // Store in localStorage
+    // Store in localStorage for offline resiliency
     try {
       const stored = localStorage.getItem('jeevikasetu_citizen_reports');
       const existing = stored ? JSON.parse(stored) : [];

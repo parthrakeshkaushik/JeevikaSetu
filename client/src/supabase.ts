@@ -4,16 +4,18 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const SUPABASE_PROJECT_URL =
   (import.meta as any).env?.VITE_SUPABASE_URL || 'https://wrnkpwgaygydbekdpfmg.supabase.co';
 
+const BUILTIN_ANON_KEY = 'sb_publishable_mQGOBMU_iSMFaKe9KPAKSA_MkcVvmtP';
+
 export const getSupabaseAnonKey = (): string => {
   try {
     return (
       (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
       (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
       localStorage.getItem('jeevikasetu_supabase_anon_key') ||
-      ''
+      BUILTIN_ANON_KEY
     ).trim();
   } catch {
-    return '';
+    return BUILTIN_ANON_KEY;
   }
 };
 
@@ -41,10 +43,12 @@ export const getSupabaseProjectUrl = (): string => {
 
 // Internal active client cache
 let activeSupabaseClient: SupabaseClient | null = null;
+let lastUsedKey: string | null = null;
 
 export const getSupabaseClient = (): SupabaseClient => {
   const currentKey = getSupabaseAnonKey();
-  if (!activeSupabaseClient || (currentKey && currentKey.length > 20)) {
+  if (!activeSupabaseClient || lastUsedKey !== currentKey) {
+    lastUsedKey = currentKey;
     activeSupabaseClient = createClient(
       SUPABASE_PROJECT_URL,
       currentKey || 'placeholder-anon-key-configure-in-env',
