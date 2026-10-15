@@ -208,30 +208,40 @@ export const Dashboard: React.FC = () => {
               <BarChart2 className="w-4 h-4 text-blue-600" />
             </div>
 
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.categoryChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-slate-900 text-white p-2 rounded text-xs shadow">
-                            <div className="font-bold">{data.fullName}</div>
-                            <div>दर्ज रिपोर्ट: <strong>{data.count}</strong></div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {analytics.categoryChartData && analytics.categoryChartData.length > 0 ? (
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.categoryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900 text-white p-2 rounded text-xs shadow">
+                              <div className="font-bold">{data.fullName}</div>
+                              <div>दर्ज रिपोर्ट: <strong>{data.count}</strong></div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <BarChart2 className="w-8 h-8 text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-600">0 रिपोर्ट दर्ज (No category reports yet)</p>
+                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                  नागरिकों द्वारा रिपोर्ट दर्ज होते ही फसल, पशुधन, दुकान व मजदूरी का श्रेणी-वार ग्राफ स्वतः तैयार होगा।
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Block-wise Distribution Chart */}
@@ -246,18 +256,28 @@ export const Dashboard: React.FC = () => {
               <MapPin className="w-4 h-4 text-teal-600" />
             </div>
 
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.blockChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="block" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="verified" name="सत्यापित" fill="#059669" stackId="a" />
-                  <Bar dataKey="pending" name="लंबित" fill="#ea580c" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {analytics.blockChartData && analytics.blockChartData.length > 0 ? (
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.blockChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="block" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="verified" name="सत्यापित" fill="#059669" stackId="a" />
+                    <Bar dataKey="pending" name="लंबित" fill="#ea580c" stackId="a" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <MapPin className="w-8 h-8 text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-600">0 रिपोर्ट दर्ज (No block reports yet)</p>
+                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                  प्रखंड-वार मामलों का तुलनात्मक विश्लेषण वास्तविक रिपोर्ट आने पर स्वतः प्रदर्शित होगा।
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -295,54 +315,70 @@ export const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {recentCases.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3 px-4 font-mono font-bold text-blue-700">
-                    <Link to={`/admin/cases/${c.id}`} className="hover:underline">
-                      {c.reportNumber}
-                    </Link>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5">
-                      <div className="font-semibold text-slate-900">{c.citizenName}</div>
-                      {c.status === 'SUBMITTED' && (
-                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
-                          🆕 नया
-                        </span>
-                      )}
+              {recentCases.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="text-xs font-bold text-slate-700">वर्तमान में 0 मामले दर्ज हैं (No cases yet)</div>
+                      <div className="text-[11px] text-slate-400 max-w-sm">
+                        पोर्टल पूर्णतः तैयार है। नागरिक द्वारा वेबसाइट से रिपोर्ट दर्ज करते ही वास्तविक आंकड़े व डोजियर यहाँ प्रदर्शित होंगे।
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-500">{c.village}, {c.block} ({c.district})</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-wrap gap-1">
-                      {c.livelihoodCategories?.map((cat: string) => (
-                        <span key={cat} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px]">
-                          {cat}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <PriorityBadge
-                      score={c.priorityScore}
-                      level={c.priorityLevel}
-                      rationale={c.priorityRationale}
-                    />
-                  </td>
-                  <td className="py-3 px-4">
-                    <StatusBadge status={c.status} />
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <Link
-                      to={`/admin/cases/${c.id}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-md font-medium text-xs transition-colors"
-                    >
-                      <span>डोजियर</span>
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Link>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentCases.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-blue-700">
+                      <Link to={`/admin/cases/${c.id}`} className="hover:underline">
+                        {c.reportNumber}
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-semibold text-slate-900">{c.citizenName}</div>
+                        {c.status === 'SUBMITTED' && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                            🆕 नया
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500">{c.village}, {c.block} ({c.district})</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {c.livelihoodCategories?.map((cat: string) => (
+                          <span key={cat} className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px]">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <PriorityBadge
+                        score={c.priorityScore}
+                        level={c.priorityLevel}
+                        rationale={c.priorityRationale}
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <Link
+                        to={`/admin/cases/${c.id}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-md font-medium text-xs transition-colors"
+                      >
+                        <span>डोजियर</span>
+                        <ArrowUpRight className="w-3 h-3" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

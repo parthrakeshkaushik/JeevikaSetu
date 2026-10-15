@@ -13,6 +13,8 @@ const getHeaders = (token?: string | null): Record<string, string> => {
   return headers;
 };
 
+import { getSupabaseClient, isSupabaseConfigured } from '../supabase.js';
+
 // Safe JSON fetch wrapper that never crashes on 404 HTML responses
 const safeFetchJson = async (path: string, options?: RequestInit): Promise<any> => {
   try {
@@ -28,6 +30,299 @@ const safeFetchJson = async (path: string, options?: RequestInit): Promise<any> 
     console.warn(`API call to ${path} encountered network issue:`, err);
     return null;
   }
+};
+
+// Fetch all genuine reports available from Supabase and/or localStorage
+export const fetchAllAvailableReports = async (): Promise<any[]> => {
+  let reports: any[] = [];
+  const knownIds = new Set<string>();
+
+  // 1. Fetch from Supabase if configured
+  try {
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      const { data, error } = await client
+        .from('LivelihoodReport')
+        .select('*')
+        .order('submittedAt', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        for (const r of data) {
+          const reportKey = r.reportNumber || r.id;
+          if (reportKey && !knownIds.has(reportKey)) {
+            knownIds.add(reportKey);
+            reports.push({
+              ...r,
+              livelihoodCategories:
+                typeof r.livelihoodCategories === 'string'
+                  ? (() => {
+                      try {
+                        return JSON.parse(r.livelihoodCategories);
+                      } catch {
+                        return [r.livelihoodCategories];
+                      }
+                    })()
+                  : r.livelihoodCategories || ['CROP'],
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase fetch reports notice:', err);
+  }
+
+  // 2. Fetch from LocalStorage
+  try {
+    const stored = localStorage.getItem('jeevikasetu_citizen_reports');
+    if (stored) {
+      const local: any[] = JSON.parse(stored);
+      for (const lr of local) {
+        // Discard any legacy seeded dummy reports if any remained
+        const dummyPrefixes = [
+          'JS-2027-SUP-8411',
+          'JS-2027-SUP-8412',
+          'JS-2027-SUP-8413',
+          'JS-2027-SUP-8414',
+          'JS-2027-DAR-7101',
+          'JS-2027-DAR-7102',
+          'JS-2027-MAD-5201',
+          'JS-2027-MAD-5202',
+          'JS-2027-SAH-3301',
+          'JS-2027-MUZ-4101',
+        ];
+        if (dummyPrefixes.includes(lr.reportNumber)) continue;
+
+        const reportKey = lr.reportNumber || lr.id;
+        if (reportKey && !knownIds.has(reportKey)) {
+          knownIds.add(reportKey);
+          reports.push(lr);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('LocalStorage fetch reports notice:', err);
+  }
+
+  return reports;
+};
+
+// Pure mathematical calculation formula applied strictly to submitted reports
+export const calculateAnalyticsFromReports = (
+  allReports: any[],
+  district?: string,
+  block?: string
+) => {
+  // Filter by jurisdiction scope if selected
+  let filtered = allReports;
+  if (district && district !== 'ALL') {
+    filtered = filtered.filter(
+      (r) => (r.district || '').toLowerCase() === district.toLowerCase()
+    );
+  }
+  if (block && block !== 'ALL') {
+    filtered = filtered.filter(
+      (r) => (r.block || '').toLowerCase() === block.toLowerCase()
+    );
+  }
+
+  const totalReports = filtered.length;
+
+  // Deduplication formula: Unique households by (Phone + Village)
+  const householdSet = new Set(
+    filtered
+      .map((r) => `${r.citizenPhone || ''}_${(r.village || '').toLowerCase().trim()}`)
+      .filter((k) => k !== '_')
+  );
+  const uniqueHouseholdsCount = filtered.length > 0 ? (householdSet.size || filtered.length) : 0;
+
+  // Status breakdown
+  const statusCounts: Record<string, number> = {
+    SUBMITTED: 0,
+    AWAITING_REVIEW: 0,
+    ASSIGNED_FOR_VERIFICATION: 0,
+    VERIFICATION_IN_PROGRESS: 0,
+    VERIFIED: 0,
+    PARTIALLY_VERIFIED: 0,
+    UNABLE_TO_VERIFY: 0,
+    ADDITIONAL_INFO_REQUIRED: 0,
+    REFERRED_FOR_RECOVERY: 0,
+    FOLLOWUP_IN_PROGRESS: 0,
+    ACTION_RECORDED: 0,
+    CLOSED: 0,
+    REOPENED: 0,
+  };
+
+  filtered.forEach((r) => {
+    const s = r.status || 'SUBMITTED';
+    if (statusCounts[s] !== undefined) {
+      statusCounts[s]++;
+    } else {
+      statusCounts.SUBMITTED++;
+    }
+  });
+
+  const pendingVerification =
+    statusCounts.SUBMITTED +
+    statusCounts.AWAITING_REVIEW +
+    statusCounts.ASSIGNED_FOR_VERIFICATION +
+    statusCounts.VERIFICATION_IN_PROGRESS;
+
+  const totalVerified = statusCounts.VERIFIED + statusCounts.PARTIALLY_VERIFIED;
+  const totalRecoveryReferred =
+    statusCounts.REFERRED_FOR_RECOVERY +
+    statusCounts.FOLLOWUP_IN_PROGRESS +
+    statusCounts.ACTION_RECORDED;
+
+  // Total self-reported estimated losses: Formula is exact sum of numerical estimates
+  const totalSelfReportedLoss = filtered.reduce(
+    (sum, r) => sum + (Number(r.estimatedLossAmount) || 0),
+    0
+  );
+
+  // Aging & Overdue analysis (pending > 48 hours without verification)
+  const now = Date.now();
+  let pendingUnder24h = 0;
+  let pending24to48h = 0;
+  let pendingOver48hOverdue = 0;
+
+  filtered.forEach((r) => {
+    const isPending = [
+      'SUBMITTED',
+      'AWAITING_REVIEW',
+      'ASSIGNED_FOR_VERIFICATION',
+      'VERIFICATION_IN_PROGRESS',
+    ].includes(r.status || 'SUBMITTED');
+
+    if (isPending) {
+      const submittedTime = r.submittedAt ? new Date(r.submittedAt).getTime() : now;
+      const diffHours = (now - submittedTime) / (1000 * 60 * 60);
+      if (diffHours < 24) pendingUnder24h++;
+      else if (diffHours < 48) pending24to48h++;
+      else pendingOver48hOverdue++;
+    }
+  });
+
+  // Livelihood Category distribution
+  const categoryNames: Record<string, { name: string; fullName: string }> = {
+    CROP: { name: 'फसल', fullName: 'फसल क्षति (Crop Loss)' },
+    LIVESTOCK: { name: 'पशु', fullName: 'पशुधन एवं चारा (Livestock)' },
+    SHOP_BUSINESS: { name: 'दुकान', fullName: 'गुमटी / दुकान / व्यवसाय' },
+    FISHERIES: { name: 'मत्स्य', fullName: 'मत्स्य पालन / तालाब क्षति' },
+    WAGE_LABOR: { name: 'मजदूरी', fullName: 'दैनिक मजदूरी व्यवधान' },
+  };
+
+  const catCountMap: Record<string, number> = {};
+  filtered.forEach((r) => {
+    let cats: string[] = [];
+    if (Array.isArray(r.livelihoodCategories)) {
+      cats = r.livelihoodCategories;
+    } else if (typeof r.livelihoodCategories === 'string') {
+      try {
+        cats = JSON.parse(r.livelihoodCategories);
+      } catch {
+        cats = [r.livelihoodCategories];
+      }
+    }
+    cats.forEach((c) => {
+      catCountMap[c] = (catCountMap[c] || 0) + 1;
+    });
+  });
+
+  const categoryChartData = Object.entries(catCountMap)
+    .filter(([_, count]) => count > 0)
+    .map(([cat, count]) => ({
+      category: cat,
+      name: categoryNames[cat]?.name || cat,
+      fullName: categoryNames[cat]?.fullName || cat,
+      count,
+    }));
+
+  // Block-wise distribution
+  const blockDistribution: Record<string, { total: number; verified: number; pending: number }> = {};
+  filtered.forEach((r) => {
+    const bName = r.block || 'Unknown';
+    if (!blockDistribution[bName]) {
+      blockDistribution[bName] = { total: 0, verified: 0, pending: 0 };
+    }
+    blockDistribution[bName].total++;
+    if (r.status === 'VERIFIED' || r.status === 'PARTIALLY_VERIFIED') {
+      blockDistribution[bName].verified++;
+    } else if (
+      [
+        'SUBMITTED',
+        'AWAITING_REVIEW',
+        'ASSIGNED_FOR_VERIFICATION',
+        'VERIFICATION_IN_PROGRESS',
+      ].includes(r.status || 'SUBMITTED')
+    ) {
+      blockDistribution[bName].pending++;
+    }
+  });
+
+  const blockChartData = Object.entries(blockDistribution)
+    .filter(([_, data]) => data.total > 0)
+    .map(([blockName, data]) => ({
+      block: blockName,
+      total: data.total,
+      verified: data.verified,
+      pending: data.pending,
+    }));
+
+  // Priority breakdown
+  const priorityCounts = {
+    LOW: filtered.filter((r) => (r.priorityLevel || 'MEDIUM').toUpperCase() === 'LOW').length,
+    MEDIUM: filtered.filter((r) => (r.priorityLevel || 'MEDIUM').toUpperCase() === 'MEDIUM').length,
+    HIGH: filtered.filter((r) => (r.priorityLevel || 'MEDIUM').toUpperCase() === 'HIGH').length,
+    URGENT: filtered.filter((r) => (r.priorityLevel || 'MEDIUM').toUpperCase() === 'URGENT').length,
+  };
+
+  // Voice vs Text adoption rate
+  const voiceCount = filtered.filter(
+    (r) => r.isVoiceReport || Boolean(r.audioSimulationUrl) || Boolean(r.audioUrl)
+  ).length;
+  const textCount = totalReports - voiceCount;
+
+  return {
+    success: true,
+    role: 'ADMIN',
+    scope: {
+      district: district || 'All Authorized Districts',
+      block: block || 'All Blocks',
+    },
+    kpis: {
+      totalReports,
+      uniqueHouseholdsCount,
+      pendingVerification,
+      totalVerified,
+      totalRecoveryReferred,
+      totalClosed: statusCounts.CLOSED,
+      totalSelfReportedLoss,
+      overdueCases: pendingOver48hOverdue,
+      totalEscalations: 0,
+      activeFollowUps: statusCounts.FOLLOWUP_IN_PROGRESS,
+    },
+    agingBreakdown: {
+      under24h: pendingUnder24h,
+      between24and48h: pending24to48h,
+      over48hOverdue: pendingOver48hOverdue,
+    },
+    statusCounts,
+    priorityCounts,
+    categoryChartData,
+    blockChartData,
+    modality: {
+      voiceReports: voiceCount,
+      textReports: textCount,
+      voicePercentage: totalReports > 0 ? Math.round((voiceCount / totalReports) * 100) : 0,
+    },
+    disclaimers: {
+      lossAmountNote:
+        'दर्शाया गया कुल अनुमानित नुकसान नागरिकों द्वारा स्व-रिपोर्ट किया गया है। यह आधिकारिक जांच या स्वीकृत मुआवजा नहीं है।',
+      deduplicationNote:
+        'अद्वितीय परिवारों की गणना मोबाइल नंबर और गांव के आधार पर की गई है ताकि दोहराव की पहचान हो सके।',
+    },
+  };
 };
 
 export const api = {
@@ -77,10 +372,9 @@ export const api = {
       return res;
     }
 
-    // Local report storage fallback (strictly isolated by citizen email)
-    const stored = localStorage.getItem('jeevikasetu_citizen_reports');
-    const localReports: any[] = stored ? JSON.parse(stored) : [];
-    const filtered = localReports.filter((r) => {
+    // Isolated by citizen email / phone from genuine reports
+    const allReports = await fetchAllAvailableReports();
+    const filtered = allReports.filter((r) => {
       if (email && r.citizenEmail) return r.citizenEmail.toLowerCase() === email.toLowerCase();
       if (phone && r.citizenPhone) return r.citizenPhone.includes(phone.slice(-10));
       return false;
@@ -92,7 +386,9 @@ export const api = {
       summary: {
         total: filtered.length,
         verified: filtered.filter((r) => r.status === 'VERIFIED' || r.status === 'ACTION_RECORDED').length,
-        inProgress: filtered.filter((r) => ['AWAITING_REVIEW', 'ASSIGNED_FOR_VERIFICATION', 'REFERRED_FOR_RECOVERY', 'FOLLOWUP_IN_PROGRESS'].includes(r.status)).length,
+        inProgress: filtered.filter((r) =>
+          ['AWAITING_REVIEW', 'ASSIGNED_FOR_VERIFICATION', 'REFERRED_FOR_RECOVERY', 'FOLLOWUP_IN_PROGRESS'].includes(r.status)
+        ).length,
         submitted: filtered.filter((r) => r.status === 'SUBMITTED').length,
       },
       reports: filtered,
@@ -107,26 +403,23 @@ export const api = {
     });
 
     if (res && res.success && res.report) {
-      // Also cache in local storage for instant offline viewing
       try {
         const stored = localStorage.getItem('jeevikasetu_citizen_reports');
         const existing = stored ? JSON.parse(stored) : [];
         existing.unshift(res.report);
         localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(existing));
-      } catch (e) {
-        // Ignore cache failure
-      }
+      } catch (e) {}
       return res;
     }
 
-    // Offline / Standalone simulated report submission with authentic ID
+    // Authentic report generation
     const distPrefix = (data.district || 'SUP').substring(0, 3).toUpperCase();
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const reportNumber = `JS-2027-${distPrefix}-${randNum}`;
 
     let primaryDept = 'आपदा राहत एवं आजीविका कोषांग';
     let targetScheme = 'बाढ़ आजीविका सुरक्षा सहायता';
-    const cats = data.livelihoodCategories || ['CROP'];
+    const cats = Array.isArray(data.livelihoodCategories) ? data.livelihoodCategories : ['CROP'];
     if (cats.includes('CROP')) {
       primaryDept = 'कृषि विभाग (Department of Agriculture, Bihar)';
       targetScheme = 'आकस्मिक बीज मिनीकिट एवं फसल क्षति इनपुट अनुदान (In-put Subsidy)';
@@ -138,20 +431,38 @@ export const api = {
       targetScheme = 'सतत जीविकोपार्जन योजना (SJY) आपातकालीन कोष';
     }
 
+    let score = 50;
+    const lossVal = data.estimatedLossAmount && !isNaN(Number(data.estimatedLossAmount)) ? Number(data.estimatedLossAmount) : 0;
+    if (lossVal > 100000) score += 25;
+    else if (lossVal > 50000) score += 15;
+    if (cats.includes('LIVESTOCK')) score += 15;
+    if (cats.includes('CROP')) score += 10;
+    if (score > 100) score = 95;
+
+    let priorityLevel = 'MEDIUM';
+    if (score >= 80) priorityLevel = 'URGENT';
+    else if (score >= 65) priorityLevel = 'HIGH';
+    else if (score <= 40) priorityLevel = 'LOW';
+
     const newReport = {
       id: 'report-' + Date.now(),
       reportNumber,
       citizenName: data.citizenName || 'बाढ़ पीड़ित नागरिक',
       citizenPhone: data.citizenPhone || '',
       citizenEmail: data.citizenEmail || null,
+      preferredLanguage: data.preferredLanguage || 'hi',
       district: data.district || 'Supaul',
       block: data.block || 'Nirmali',
       panchayat: data.panchayat || 'Mahuwa',
       village: data.village || `${data.panchayat || 'महुवा'} टोला`,
       wardNumber: data.wardNumber || null,
       livelihoodCategories: cats,
-      lossDescription: data.lossDescription || data.confirmedTranscript,
-      estimatedLossAmount: data.estimatedLossAmount || null,
+      lossDescription: data.lossDescription || data.confirmedTranscript || '',
+      confirmedTranscript: data.confirmedTranscript || data.lossDescription || '',
+      estimatedLossAmount: lossVal,
+      isVoiceReport: Boolean(data.isVoiceReport || data.audioSimulationUrl || data.audioUrl),
+      priorityScore: score,
+      priorityLevel,
       status: 'SUBMITTED',
       statusMessage: {
         hi: 'आपकी रिपोर्ट प्राप्त हो गई है और प्राथमिक समीक्षा की प्रतीक्षा में है।',
@@ -170,14 +481,48 @@ export const api = {
       audioSimulationUrl: data.audioSimulationUrl || data.audioUrl || null,
     };
 
+    // Store directly in Supabase table
+    try {
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        const dbPayload = {
+          reportNumber: newReport.reportNumber,
+          citizenName: newReport.citizenName,
+          citizenPhone: newReport.citizenPhone,
+          citizenEmail: newReport.citizenEmail,
+          preferredLanguage: newReport.preferredLanguage,
+          isVoiceReport: newReport.isVoiceReport,
+          confirmedTranscript: newReport.confirmedTranscript,
+          audioSimulationUrl: newReport.audioSimulationUrl,
+          district: newReport.district,
+          block: newReport.block,
+          panchayat: newReport.panchayat,
+          village: newReport.village,
+          wardNumber: newReport.wardNumber,
+          livelihoodCategories: JSON.stringify(newReport.livelihoodCategories),
+          lossDescription: newReport.lossDescription,
+          estimatedLossAmount: newReport.estimatedLossAmount,
+          priorityScore: newReport.priorityScore,
+          priorityLevel: newReport.priorityLevel,
+          status: newReport.status,
+          submittedAt: newReport.submittedAt,
+        };
+        const { data: dbReport, error } = await client.from('LivelihoodReport').insert(dbPayload).select().single();
+        if (!error && dbReport?.id) {
+          newReport.id = dbReport.id;
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase direct insert note:', err);
+    }
+
+    // Store in localStorage
     try {
       const stored = localStorage.getItem('jeevikasetu_citizen_reports');
       const existing = stored ? JSON.parse(stored) : [];
       existing.unshift(newReport);
       localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(existing));
-    } catch (e) {
-      // Ignore
-    }
+    } catch (e) {}
 
     return {
       success: true,
@@ -190,19 +535,20 @@ export const api = {
     const params = new URLSearchParams({ reportNumber });
     if (phone) params.append('phone', phone);
     const res = await safeFetchJson(`/api/reports/track?${params.toString()}`);
-    if (res && res.success) return res;
+    if (res && res.success && res.report) return res;
 
-    // Check local storage for recently submitted report
-    const stored = localStorage.getItem('jeevikasetu_citizen_reports');
-    if (stored) {
-      const localReports: any[] = JSON.parse(stored);
-      const match = localReports.find((r) => r.reportNumber === reportNumber);
-      if (match) {
-        return {
-          success: true,
-          report: match,
-        };
-      }
+    const allReports = await fetchAllAvailableReports();
+    const cleanSearch = reportNumber.trim().toUpperCase();
+    const match = allReports.find(
+      (r) =>
+        (r.reportNumber || '').toUpperCase() === cleanSearch ||
+        (r.id || '') === reportNumber
+    );
+    if (match) {
+      return {
+        success: true,
+        report: match,
+      };
     }
 
     return {
@@ -375,14 +721,82 @@ export const api = {
     const res = await safeFetchJson(`/api/reports?${query}`, {
       headers: getHeaders(),
     });
-    return res || { success: true, reports: [], total: 0 };
+    if (res && res.success && Array.isArray(res.reports)) return res;
+
+    // Load actual submitted reports
+    const allReports = await fetchAllAvailableReports();
+
+    let filtered = allReports;
+    if (params.district && params.district !== 'ALL') {
+      filtered = filtered.filter((r) => (r.district || '').toLowerCase() === params.district.toLowerCase());
+    }
+    if (params.block && params.block !== 'ALL') {
+      filtered = filtered.filter((r) => (r.block || '').toLowerCase() === params.block.toLowerCase());
+    }
+    if (params.status && params.status !== 'ALL') {
+      filtered = filtered.filter((r) => r.status === params.status);
+    }
+    if (params.category && params.category !== 'ALL') {
+      filtered = filtered.filter((r) => {
+        const cats = Array.isArray(r.livelihoodCategories)
+          ? r.livelihoodCategories
+          : [r.livelihoodCategories];
+        return cats.includes(params.category);
+      });
+    }
+    if (params.priorityLevel && params.priorityLevel !== 'ALL') {
+      filtered = filtered.filter((r) => (r.priorityLevel || 'MEDIUM').toUpperCase() === params.priorityLevel.toUpperCase());
+    }
+    if (params.search) {
+      const q = params.search.toLowerCase().trim();
+      filtered = filtered.filter((r) =>
+        (r.reportNumber || '').toLowerCase().includes(q) ||
+        (r.citizenName || '').toLowerCase().includes(q) ||
+        (r.citizenPhone || '').includes(q) ||
+        (r.village || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (params.sortBy === 'priority') {
+      filtered.sort((a, b) => (b.priorityScore || 50) - (a.priorityScore || 50));
+    } else {
+      filtered.sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+    }
+
+    const limit = params.limit ? parseInt(params.limit) : 50;
+    const paginated = filtered.slice(0, limit);
+
+    return {
+      success: true,
+      reports: paginated,
+      total: filtered.length,
+      pagination: {
+        total: filtered.length,
+        page: 1,
+        limit,
+        pages: Math.ceil(filtered.length / limit) || 1,
+      },
+    };
   },
 
   async getReportById(id: string) {
     const res = await safeFetchJson(`/api/reports/${id}`, {
       headers: getHeaders(),
     });
-    return res || { success: false, message: 'रिपोर्ट उपलब्ध नहीं है' };
+    if (res && res.success && res.report) return res;
+
+    const allReports = await fetchAllAvailableReports();
+    const cleanId = id.trim().toUpperCase();
+    const match = allReports.find((r) => (r.reportNumber || '').toUpperCase() === cleanId || r.id === id);
+    if (match) {
+      return {
+        success: true,
+        report: match,
+      };
+    }
+
+    return { success: false, message: 'रिपोर्ट उपलब्ध नहीं है' };
   },
 
   async updateReportStatus(id: string, status: string, remarks: string) {
@@ -391,7 +805,30 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify({ status, remarks }),
     });
-    return res || { success: true, message: 'स्थिति अद्यतन हो गई' };
+    if (res && res.success) return res;
+
+    // Update in Supabase if configured
+    try {
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        await client
+          .from('LivelihoodReport')
+          .update({ status, updatedAt: new Date().toISOString() })
+          .or(`id.eq.${id},reportNumber.eq.${id}`);
+      }
+    } catch (e) {}
+
+    // Update in localStorage
+    try {
+      const stored = localStorage.getItem('jeevikasetu_citizen_reports');
+      if (stored) {
+        const local: any[] = JSON.parse(stored);
+        const updated = local.map((r) => (r.id === id || r.reportNumber === id ? { ...r, status } : r));
+        localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(updated));
+      }
+    } catch (e) {}
+
+    return { success: true, message: 'स्थिति अद्यतन हो गई' };
   },
 
   async assignReport(id: string, assignedUserId: string, remarks: string) {
@@ -400,7 +837,32 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify({ assignedUserId, remarks }),
     });
-    return res || { success: true, message: 'आवंटन पूर्ण हुआ' };
+    if (res && res.success) return res;
+
+    try {
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        await client
+          .from('LivelihoodReport')
+          .update({ assignedUserId, status: 'ASSIGNED_FOR_VERIFICATION', updatedAt: new Date().toISOString() })
+          .or(`id.eq.${id},reportNumber.eq.${id}`);
+      }
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem('jeevikasetu_citizen_reports');
+      if (stored) {
+        const local: any[] = JSON.parse(stored);
+        const updated = local.map((r) =>
+          r.id === id || r.reportNumber === id
+            ? { ...r, assignedUserId, status: 'ASSIGNED_FOR_VERIFICATION' }
+            : r
+        );
+        localStorage.setItem('jeevikasetu_citizen_reports', JSON.stringify(updated));
+      }
+    } catch (e) {}
+
+    return { success: true, message: 'आवंटन पूर्ण हुआ' };
   },
 
   async escalateReport(id: string, data: { escalatedToRole: string; reason: string; administrativeNote: string }) {
@@ -441,80 +903,18 @@ export const api = {
 
   async getDashboardAnalytics(district?: string, block?: string) {
     const params = new URLSearchParams();
-    if (district) params.append('district', district);
-    if (block) params.append('block', block);
-    const res = await safeFetchJson(`/api/analytics/dashboard?${params.toString()}`, {
+    if (district && district !== 'ALL') params.append('district', district);
+    if (block && block !== 'ALL') params.append('block', block);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await safeFetchJson(`/api/analytics/dashboard${qs}`, {
       headers: getHeaders(),
     });
     if (res && res.success && res.kpis) return res;
 
-    // Authentic comprehensive fallback for cloud deployments matching Prisma DB
-    return {
-      success: true,
-      role: 'ADMIN',
-      scope: {
-        district: district || 'All Authorized Districts',
-        block: block || 'All Blocks',
-      },
-      kpis: {
-        totalReports: 10,
-        uniqueHouseholdsCount: 9,
-        pendingVerification: 4,
-        totalVerified: 3,
-        totalRecoveryReferred: 3,
-        totalClosed: 0,
-        totalSelfReportedLoss: 385000,
-        overdueCases: 1,
-        totalEscalations: 0,
-        activeFollowUps: 2,
-      },
-      agingBreakdown: {
-        under24h: 2,
-        between24and48h: 1,
-        over48hOverdue: 1,
-      },
-      statusCounts: {
-        SUBMITTED: 2,
-        AWAITING_REVIEW: 1,
-        ASSIGNED_FOR_VERIFICATION: 1,
-        VERIFICATION_IN_PROGRESS: 0,
-        VERIFIED: 2,
-        PARTIALLY_VERIFIED: 1,
-        REFERRED_FOR_RECOVERY: 2,
-        FOLLOWUP_IN_PROGRESS: 1,
-        ACTION_RECORDED: 0,
-        CLOSED: 0,
-      },
-      priorityCounts: {
-        LOW: 2,
-        MEDIUM: 4,
-        HIGH: 3,
-        URGENT: 1,
-      },
-      categoryChartData: [
-        { category: 'CROP', name: 'फसल', fullName: 'फसल क्षति (Crop Loss)', count: 7 },
-        { category: 'LIVESTOCK', name: 'पशु', fullName: 'पशुधन एवं चारा (Livestock)', count: 5 },
-        { category: 'SHOP_BUSINESS', name: 'दुकान', fullName: 'गुमटी / दुकान / व्यवसाय', count: 3 },
-        { category: 'FISHERIES', name: 'मत्स्य', fullName: 'मत्स्य पालन / तालाब क्षति', count: 2 },
-        { category: 'WAGE_LABOR', name: 'मजदूरी', fullName: 'दैनिक मजदूरी व्यवधान', count: 4 },
-      ],
-      blockChartData: [
-        { block: 'Nirmali', total: 4, verified: 2, pending: 2 },
-        { block: 'Supaul Sadar', total: 3, verified: 1, pending: 2 },
-        { block: 'Kusheshwar Asthan', total: 3, verified: 1, pending: 2 },
-      ],
-      modality: {
-        voiceReports: 6,
-        textReports: 4,
-        voicePercentage: 60,
-      },
-      disclaimers: {
-        lossAmountNote:
-          'दर्शाया गया कुल अनुमानित नुकसान नागरिकों द्वारा स्व-रिपोर्ट किया गया है। यह आधिकारिक जांच या स्वीकृत मुआवजा नहीं है।',
-        deduplicationNote:
-          'अद्वितीय परिवारों की गणना मोबाइल नंबर और गांव के आधार पर की गई है ताकि दोहराव की पहचान हो सके।',
-      },
-    };
+    // Mathematical dynamic calculation strictly based on actual submitted reports
+    const allReports = await fetchAllAvailableReports();
+    return calculateAnalyticsFromReports(allReports, district, block);
   },
 
   async getVolunteers(block?: string) {

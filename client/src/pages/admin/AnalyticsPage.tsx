@@ -130,17 +130,27 @@ export const AnalyticsPage: React.FC = () => {
                   <BarChart3 className="w-4 h-4 text-blue-600" />
                   <span>आजीविका श्रेणी-वार क्षति वितरण (Category Distribution)</span>
                 </h3>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analytics.categoryChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {analytics.categoryChartData && analytics.categoryChartData.length > 0 ? (
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analytics.categoryChartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <BarChart3 className="w-8 h-8 text-slate-300 mb-2" />
+                    <p className="text-xs font-bold text-slate-600">0 रिपोर्ट दर्ज (No category data)</p>
+                    <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                      नागरिकों द्वारा रिपोर्ट दर्ज करते ही फसल, पशुधन, दुकान व मजदूरी का श्रेणी-वार वितरण ग्राफ तैयार होगा।
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Priority Distribution Pie */}
@@ -149,27 +159,37 @@ export const AnalyticsPage: React.FC = () => {
                   <PieIcon className="w-4 h-4 text-amber-600" />
                   <span>प्राथमिकता स्तर वितरण (Priority Level Breakdown)</span>
                 </h3>
-                <div className="h-64 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={priorityPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label
-                      >
-                        {priorityPieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                {priorityPieData && priorityPieData.length > 0 ? (
+                  <div className="h-64 w-full flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={priorityPieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label
+                        >
+                          {priorityPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <PieIcon className="w-8 h-8 text-slate-300 mb-2" />
+                    <p className="text-xs font-bold text-slate-600">0 प्राथमिकता मामले (No priority cases)</p>
+                    <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                      अति-प्राथमिक, उच्च, मध्यम एवं सामान्य मामलों का पाई चार्ट नए मामले दर्ज होने पर स्वतः बनेगा।
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
