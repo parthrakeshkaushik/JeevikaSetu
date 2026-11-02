@@ -24,6 +24,9 @@ import {
   Cloud,
   Laptop,
   Smartphone,
+  LogIn,
+  Settings,
+  Server,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useAccessibility } from '../../context/AccessibilityContext.js';
@@ -32,7 +35,7 @@ import { useAuth } from '../../context/AuthContext.js';
 import { AudioPlayerButton } from '../../components/AudioPlayerButton.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
 import { api } from '../../api/client.js';
-import { isSupabaseConfigured, getSupabaseClient } from '../../supabase.js';
+import { isSupabaseConfigured, getSupabaseClient, checkSupabaseHealth, getSupabaseProjectUrl } from '../../supabase.js';
 
 export const CitizenHome: React.FC = () => {
   const { t, language } = useLanguage();
@@ -41,10 +44,13 @@ export const CitizenHome: React.FC = () => {
     citizen,
     isCitizenAuthenticated,
     signInWithGoogleOAuth,
+    loginWithGoogle,
     logoutCitizen,
     isLoading: authLoading,
     isSupabaseReady,
+    supabaseProjectUrl,
     configureSupabaseAnonKey,
+    configureSupabaseSettings,
   } = useCitizenAuth();
   const { user: adminUser, isAuthenticated: isAdminAuthenticated, logout: adminLogout } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +59,19 @@ export const CitizenHome: React.FC = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showAnonKeyPrompt, setShowAnonKeyPrompt] = useState<boolean>(false);
   const [anonKeyInput, setAnonKeyInput] = useState<string>('');
+
+  // Paused Supabase Project Handling & Direct Resident Login
+  const [isProjectPaused, setIsProjectPaused] = useState<boolean>(false);
+  const [isRechecking, setIsRechecking] = useState<boolean>(false);
+  const [showQuickLogin, setShowQuickLogin] = useState<boolean>(false);
+  const [quickEmail, setQuickEmail] = useState<string>('');
+  const [quickName, setQuickName] = useState<string>('');
+  const [quickPhone, setQuickPhone] = useState<string>('');
+
+  // Custom Supabase Project URL & Anon Key Configuration Modal
+  const [showProjectSettings, setShowProjectSettings] = useState<boolean>(false);
+  const [customProjectUrl, setCustomProjectUrl] = useState<string>(() => supabaseProjectUrl || getSupabaseProjectUrl());
+  const [customAnonKey, setCustomAnonKey] = useState<string>('');
 
   // Citizen Dashboard Reports State
   const [myReports, setMyReports] = useState<any[]>([]);
@@ -163,7 +182,10 @@ export const CitizenHome: React.FC = () => {
     try {
       const res = await signInWithGoogleOAuth();
       if (!res.success && res.error) {
-        if (res.error.includes('Anon Key')) {
+        if (res.isPaused) {
+          setIsProjectPaused(true);
+          setLoginError(null);
+        } else if (res.error.includes('Anon Key')) {
           setShowAnonKeyPrompt(true);
         } else {
           setLoginError(res.error);
@@ -175,6 +197,61 @@ export const CitizenHome: React.FC = () => {
     } finally {
       setIsSigningIn(false);
     }
+  };
+
+  const handleRecheckProject = async () => {
+    setIsRechecking(true);
+    setLoginError(null);
+    try {
+      const health = await checkSupabaseHealth();
+      if (health.isOnline) {
+        setIsProjectPaused(false);
+        setLoginError(null);
+      } else {
+        setIsProjectPaused(true);
+        setLoginError('प्रोजेक्ट अभी भी सुचारू रूप से कनेक्ट नहीं हो पा रहा है। यदि आपने रिस्टोर बटन दबाया है, तो कृपया 1-2 मिनट प्रतीक्षा करें।');
+      }
+    } catch {
+      setIsProjectPaused(true);
+    } finally {
+      setIsRechecking(false);
+    }
+  };
+
+  const handleQuickLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanMail = quickEmail.trim().toLowerCase();
+    if (!cleanMail || !cleanMail.includes('@')) {
+      setLoginError('कृपया मान्य ईमेल पता दर्ज करें।');
+      return;
+    }
+    const ok = await loginWithGoogle(
+      cleanMail,
+      quickName.trim() || undefined,
+      quickPhone.trim() || undefined
+    );
+    if (ok) {
+      setIsProjectPaused(false);
+    }
+  };
+
+  const handleSaveProjectSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanUrl = customProjectUrl.trim();
+    const cleanKey = customAnonKey.trim();
+    if (!cleanUrl.startsWith('http')) {
+      setLoginError('कृपया मान्य Supabase URL (https://xyz.supabase.co) दर्ज करें।');
+      return;
+    }
+    if (cleanKey && cleanKey.length < 20) {
+      setLoginError('कृपया मान्य Supabase Key दर्ज करें।');
+      return;
+    }
+
+    configureSupabaseSettings(cleanUrl, cleanKey);
+    setShowProjectSettings(false);
+    setIsProjectPaused(false);
+    setLoginError(null);
   };
 
   const handleSaveAnonKeyAndLogin = async (e: React.FormEvent) => {
@@ -192,7 +269,11 @@ export const CitizenHome: React.FC = () => {
       setTimeout(async () => {
         const res = await signInWithGoogleOAuth();
         if (!res.success && res.error) {
-          setLoginError(res.error);
+          if (res.isPaused) {
+            setIsProjectPaused(true);
+          } else {
+            setLoginError(res.error);
+          }
         }
         setIsSigningIn(false);
       }, 150);
@@ -293,6 +374,125 @@ export const CitizenHome: React.FC = () => {
               </div>
             )}
 
+            {/* Paused Project / "This site can't be reached" Automatic Diagnostic & Fix Box */}
+            {isProjectPaused && (
+              <div className="p-4 sm:p-5 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-600 rounded-3xl text-left space-y-4 shadow-md animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold flex-shrink-0 mt-0.5 shadow-xs">
+                    <AlertTriangle className="w-6 h-6 text-slate-950" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100 leading-snug">
+                      "This site can't be reached" समस्या का कारण एवं 1-क्लिक समाधान:
+                    </h3>
+                    <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                      आपका Supabase प्रोजेक्ट (<span className="font-mono font-bold">{getSupabaseProjectUrl().replace('https://', '')}</span>) 7 दिनों की निष्क्रियता के बाद Supabase फ़्री टियर द्वारा ऑटो-पॉज़ (Paused) हो गया है। इसी कारण Google लॉगिन पर क्लिक करने पर साइट नहीं खुल रही थी।
+                    </p>
+                  </div>
+                </div>
+
+                {/* Primary Action 1: One-click Restore on Supabase */}
+                <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2.5">
+                  <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                    <span>मुख्य समाधान: Supabase में "Restore project" दबाएं</span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    नीचे दिए गए हरे बटन पर क्लिक करें। Supabase डैशबोर्ड में केवल <strong>"Restore project" / "Resume"</strong> बटन दबाएं। 2-3 मिनट में स्थिति हरी (Active) हो जाएगी।
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <a
+                      href="https://supabase.com/dashboard/project/wrnkpwgaygydbekdpfmg"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                    >
+                      <span>Supabase प्रोजेक्ट रिस्टोर करें (Restore Project)</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleRecheckProject}
+                      disabled={isRechecking}
+                      className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRechecking ? 'animate-spin' : ''}`} />
+                      <span>{isRechecking ? 'जांच जारी...' : 'पुनः जांचें (Re-check)'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary Action 2: Quick Direct Resident Login without waiting */}
+                <div className="p-3 sm:p-4 bg-blue-50/80 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800 space-y-2">
+                  <div className="font-extrabold text-xs sm:text-sm text-blue-950 dark:text-blue-100 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                    <span>बिना इंतज़ार किए तुरंत पोर्टल खोलें (Quick Resident Access)</span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-blue-900 dark:text-blue-200">
+                    यदि आप अभी तुरंत आवेदन दर्ज करना चाहते हैं, तो बिना रुके अपना Google ईमेल दर्ज करके सीधे 1-क्लिक में प्रवेश करें।
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickLogin(!showQuickLogin)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>{showQuickLogin ? 'त्वरित फॉर्म छुपाएं' : 'त्वरित नागरिक प्रवेश खोलें (Direct Citizen Login)'}</span>
+                  </button>
+
+                  {showQuickLogin && (
+                    <form onSubmit={handleQuickLoginSubmit} className="pt-3 space-y-3 border-t border-blue-200 dark:border-blue-800">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          आपका Google ईमेल (Gmail Address) *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={quickEmail}
+                          onChange={(e) => setQuickEmail(e.target.value)}
+                          placeholder="उदा. kaushikparth343@gmail.com"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          आपका नाम (वैकल्पिक)
+                        </label>
+                        <input
+                          type="text"
+                          value={quickName}
+                          onChange={(e) => setQuickName(e.target.value)}
+                          placeholder="उदा. पार्थ कौशिक"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        <span>डैशबोर्ड में तुरंत प्रवेश करें (Enter Dashboard)</span>
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Secondary Option: New Supabase Project */}
+                <div className="flex flex-wrap items-center justify-between pt-1 text-[11px] text-amber-900 dark:text-amber-200 gap-2">
+                  <span>यदि आपने नया Supabase प्रोजेक्ट बनाया है:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowProjectSettings(true)}
+                    className="font-bold underline hover:text-amber-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>नया URL / Key कॉन्फ़िगर करें</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Primary 1-Click "Continue with Google" Trigger */}
             <div className="space-y-3 pt-1">
               <button
@@ -322,14 +522,21 @@ export const CitizenHome: React.FC = () => {
                 </svg>
                 <span>
                   {isSigningIn || authLoading
-                    ? 'Google खाता प्रमाणीकरण जारी है...'
+                    ? 'कनेक्शन जांच एवं प्रमाणीकरण जारी है...'
                     : 'Continue with Google / Google से जारी रखें'}
                 </span>
               </button>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                क्लिक करने पर आपके फोन/ब्राउज़र का Google खाता चयन इंटरफ़ेस खुलेगा
-              </p>
+              <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1 pt-1">
+                <span>फोन/ब्राउज़र का Google खाता चयन इंटरफ़ेस खुलेगा</span>
+                <button
+                  type="button"
+                  onClick={() => setIsProjectPaused(true)}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                >
+                  साइट नहीं खुल रही है?
+                </button>
+              </div>
             </div>
 
             {/* Permanent session assurance banner */}
@@ -836,6 +1043,82 @@ export const CitizenHome: React.FC = () => {
                 💡 <em>नोट:</em> यह कुंजी आपके इस ब्राउज़र में स्थायी रूप से सुरक्षित रहेगी। सभी आगंतुकों के लिए इसे Vercel Environment Variables में <code>VITE_SUPABASE_ANON_KEY</code> के रूप में भी जोड़ें।
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Supabase Custom Project URL & Anon Key Settings Modal */}
+      {showProjectSettings && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border-2 border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
+                    Supabase प्रोजेक्ट कॉन्फ़िगरेशन
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    प्रोजेक्ट URL व Anon Key बदलें या नया प्रोजेक्ट जोड़ें
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProjectSettings(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProjectSettings} className="space-y-3.5 text-left text-xs">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Supabase Project URL *
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={customProjectUrl}
+                  onChange={(e) => setCustomProjectUrl(e.target.value)}
+                  placeholder="https://wrnkpwgaygydbekdpfmg.supabase.co"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Supabase Anon Public Key (वैकल्पिक यदि पहले से सेट है)
+                </label>
+                <textarea
+                  rows={2}
+                  value={customAnonKey}
+                  onChange={(e) => setCustomAnonKey(e.target.value)}
+                  placeholder="sb_publishable_... अथवा eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Server className="w-4 h-4" />
+                  <span>सेटिंग्स सहेजें (Save Configuration)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowProjectSettings(false)}
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer"
+                >
+                  रद्द करें
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

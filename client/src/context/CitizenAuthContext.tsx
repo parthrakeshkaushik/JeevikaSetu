@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api/client.js';
-import { getSupabaseClient, isSupabaseConfigured, setSupabaseAnonKey } from '../supabase.js';
+import {
+  getSupabaseClient,
+  isSupabaseConfigured,
+  setSupabaseAnonKey,
+  getSupabaseProjectUrl,
+  setSupabaseProjectUrl,
+  checkSupabaseHealth,
+} from '../supabase.js';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface CitizenProfile {
@@ -18,10 +25,12 @@ interface CitizenAuthContextType {
   isCitizenAuthenticated: boolean;
   isLoading: boolean;
   isSupabaseReady: boolean;
-  signInWithGoogleOAuth: () => Promise<{ success: boolean; error?: string }>;
+  supabaseProjectUrl: string;
+  signInWithGoogleOAuth: () => Promise<{ success: boolean; error?: string; isPaused?: boolean; projectUrl?: string }>;
   loginWithGoogle: (email: string, fullName?: string, phone?: string, avatarUrl?: string) => Promise<boolean>;
   logoutCitizen: () => Promise<void>;
   configureSupabaseAnonKey: (key: string) => void;
+  configureSupabaseSettings: (url: string, key: string) => void;
 }
 
 const CitizenAuthContext = createContext<CitizenAuthContextType | undefined>(undefined);
@@ -42,6 +51,7 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSupabaseReady, setIsSupabaseReady] = useState<boolean>(() => isSupabaseConfigured());
+  const [supabaseProjectUrl, setSupabaseProjectUrlState] = useState<string>(() => getSupabaseProjectUrl());
 
   // Helper to extract clean citizen profile from genuine Supabase user object
   const extractProfileFromSupabaseUser = (user: SupabaseUser): CitizenProfile => {
@@ -68,6 +78,17 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const configureSupabaseAnonKey = (key: string) => {
     setSupabaseAnonKey(key);
+    setIsSupabaseReady(isSupabaseConfigured());
+  };
+
+  const configureSupabaseSettings = (url: string, key: string) => {
+    if (url && url.trim()) {
+      setSupabaseProjectUrl(url);
+      setSupabaseProjectUrlState(getSupabaseProjectUrl());
+    }
+    if (key && key.trim()) {
+      setSupabaseAnonKey(key);
+    }
     setIsSupabaseReady(isSupabaseConfigured());
   };
 
@@ -164,7 +185,12 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
    * Official Supabase Google OAuth Flow
    * Redirects to genuine Google Account selection (accounts.google.com)
    */
-  const signInWithGoogleOAuth = async (): Promise<{ success: boolean; error?: string }> => {
+  const signInWithGoogleOAuth = async (): Promise<{
+    success: boolean;
+    error?: string;
+    isPaused?: boolean;
+    projectUrl?: string;
+  }> => {
     setIsLoading(true);
     try {
       if (!isSupabaseConfigured()) {
@@ -172,6 +198,19 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           success: false,
           error:
             'Supabase Anon Key is not yet configured. Please add VITE_SUPABASE_ANON_KEY to your environment variables.',
+        };
+      }
+
+      // Pre-flight health probe: check if Supabase is active or paused
+      // This prevents the browser from crashing with "This site can't be reached"
+      const health = await checkSupabaseHealth();
+      if (!health.isOnline) {
+        return {
+          success: false,
+          isPaused: true,
+          projectUrl: health.projectUrl,
+          error:
+            `Supabase प्रोजेक्ट (${health.projectUrl}) वर्तमान में निष्क्रिय (Paused) स्थिति में है या कनेक्ट नहीं हो पा रहा है। इसी कारण 'This site can't be reached' आ रहा था।`,
         };
       }
 
@@ -284,10 +323,12 @@ export const CitizenAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isCitizenAuthenticated: !!(token && citizen),
         isLoading,
         isSupabaseReady,
+        supabaseProjectUrl,
         signInWithGoogleOAuth,
         loginWithGoogle,
         logoutCitizen,
         configureSupabaseAnonKey,
+        configureSupabaseSettings,
       }}
     >
       {children}
