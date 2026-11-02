@@ -290,61 +290,58 @@ export const CitizenHome: React.FC = () => {
       {/* ======================================================== */}
       {isAdminAuthenticated && adminUser ? (
         /* Administrator Mode Banner - Never show second mode (resident) login gate */
-        <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-5 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-amber-300 flex items-center justify-center mx-auto shadow-md">
-            <Shield className="w-7 h-7" />
+        <div className="bg-slate-900 text-white rounded-xl p-6 border border-slate-800 shadow-sm space-y-4 text-center">
+          <div className="w-12 h-12 rounded-lg bg-slate-800 text-amber-300 flex items-center justify-center mx-auto border border-slate-700">
+            <Shield className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-950 uppercase tracking-wide">
-              सक्रिय प्रशासनिक मोड (Administrator Mode)
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-400 text-slate-950">
+              सक्रिय प्रशासनिक सत्र (Administrator Mode)
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white pt-2">
+            <h2 className="text-lg font-bold text-white pt-1">
               नमस्ते, {adminUser.fullName}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300">
+            <p className="text-xs text-slate-300">
               आप [{adminUser.role}] {adminUser.jurisdictionName || 'बिहार राज्य'} के रूप में प्रशासनिक सत्र में लॉगिन हैं।
             </p>
-            <p className="text-xs text-slate-400 pt-1">
-              नागरिक के रूप में लॉगिन करने हेतु पहले प्रशासनिक सत्र से लॉगआउट करें।
-            </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
             <Link
               to="/admin/dashboard"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5"
             >
-              <Shield className="w-4 h-4 text-amber-300" />
-              <span>प्रशासनिक डैशबोर्ड खोलें (Open Admin Dashboard)</span>
+              <Shield className="w-3.5 h-3.5 text-amber-300" />
+              <span>प्रशासनिक डैशबोर्ड खोलें</span>
             </Link>
             <button
               type="button"
               onClick={adminLogout}
-              className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-              <span>प्रशासनिक लॉगआउट (Logout Admin)</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>लॉगआउट</span>
             </button>
           </div>
         </div>
       ) : !isCitizenAuthenticated ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Top Banner & Audio Assistant */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/80 dark:bg-blue-950/70 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800 text-xs font-semibold">
-              <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+          <div className="text-center space-y-2.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
               <span>बिहार बाढ़ आजीविका समन्वय पोर्टल (HSC 2027)</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
               बाढ़ राहत एवं आजीविका क्षति समन्वय
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-sans max-w-lg mx-auto">
-              नुकसान दर्ज करने, अपने आवेदनों की स्थिति देखने एवं विभागीय अग्रसारण ट्रैक करने के लिए 1-क्लिक Google लॉगिन करें।
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+              नुकसान दर्ज करने, अपने आवेदनों की स्थिति देखने एवं विभागीय अग्रसारण ट्रैक करने हेतु अपने Google खाते से प्रवेश करें।
             </p>
 
             {/* Audio Guidance */}
-            <div className="pt-1 flex justify-center">
+            <div className="pt-0.5 flex justify-center">
               <AudioPlayerButton
                 textToSpeak={notLoggedInInstruction}
                 label="निर्देश सुनें (Listen Login Instructions)"
@@ -353,22 +350,22 @@ export const CitizenHome: React.FC = () => {
           </div>
 
           {/* Login Card (Google 1-Click Account Gate) */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-slate-200 dark:border-slate-700 shadow-lg space-y-6 text-center">
-            <div className="space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-teal-600 text-white flex items-center justify-center mx-auto shadow-md">
-                <Sparkles className="w-7 h-7" />
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 text-center">
+            <div className="space-y-1.5">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-slate-700 flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-5 h-5" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-1">
-                नागरिक पहचान व सुरक्षित प्रवेश
+              <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                नागरिक पहचान एवं सुरक्षित प्रवेश
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                नीचे दिए गए Google बटन पर क्लिक करें, अपने फोन/डिवाइस का खाता चुनें और 1-क्लिक में तुरंत प्रवेश करें।
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                नीचे दिए गए Google बटन पर क्लिक करें और अपने फोन अथवा ब्राउज़र का Google खाता चुनें।
               </p>
             </div>
 
             {/* Error Message */}
             {loginError && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-red-800 dark:text-red-200 text-xs flex items-center justify-center gap-2">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-xs flex items-center justify-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
                 <span>{loginError}</span>
               </div>
@@ -376,74 +373,74 @@ export const CitizenHome: React.FC = () => {
 
             {/* Paused Project / "This site can't be reached" Automatic Diagnostic & Fix Box */}
             {isProjectPaused && (
-              <div className="p-4 sm:p-5 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-600 rounded-3xl text-left space-y-4 shadow-md animate-in fade-in duration-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold flex-shrink-0 mt-0.5 shadow-xs">
-                    <AlertTriangle className="w-6 h-6 text-slate-950" />
+              <div className="p-4 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-lg text-left space-y-3.5 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
+                    <AlertTriangle className="w-4 h-4 text-slate-950" />
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100 leading-snug">
-                      "This site can't be reached" समस्या का कारण एवं 1-क्लिक समाधान:
+                  <div className="space-y-0.5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-amber-950 dark:text-amber-100">
+                      "This site can't be reached" समस्या का कारण एवं समाधान:
                     </h3>
-                    <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-                      आपका Supabase प्रोजेक्ट (<span className="font-mono font-bold">{getSupabaseProjectUrl().replace('https://', '')}</span>) 7 दिनों की निष्क्रियता के बाद Supabase फ़्री टियर द्वारा ऑटो-पॉज़ (Paused) हो गया है। इसी कारण Google लॉगिन पर क्लिक करने पर साइट नहीं खुल रही थी।
+                    <p className="text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                      आपका Supabase प्रोजेक्ट (<span className="font-mono font-medium">{getSupabaseProjectUrl().replace('https://', '')}</span>) 7 दिनों की निष्क्रियता के बाद Supabase फ़्री टियर द्वारा ऑटो-पॉज़ (Paused) हो गया है।
                     </p>
                   </div>
                 </div>
 
                 {/* Primary Action 1: One-click Restore on Supabase */}
-                <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2.5">
-                  <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-md border border-amber-200 dark:border-amber-800/60 space-y-2">
+                  <div className="font-semibold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
                     <span>मुख्य समाधान: Supabase में "Restore project" दबाएं</span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    नीचे दिए गए हरे बटन पर क्लिक करें। Supabase डैशबोर्ड में केवल <strong>"Restore project" / "Resume"</strong> बटन दबाएं। 2-3 मिनट में स्थिति हरी (Active) हो जाएगी।
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    नीचे दिए गए बटन पर क्लिक करें, Supabase डैशबोर्ड में <strong>"Restore project"</strong> दबाएं। 2 मिनट में प्रोजेक्ट सक्रिय हो जाएगा।
                   </p>
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
                     <a
                       href="https://supabase.com/dashboard/project/wrnkpwgaygydbekdpfmg"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1.5"
                     >
-                      <span>Supabase प्रोजेक्ट रिस्टोर करें (Restore Project)</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Supabase डैशबोर्ड में रिस्टोर करें</span>
+                      <ExternalLink className="w-3 h-3" />
                     </a>
                     <button
                       type="button"
                       onClick={handleRecheckProject}
                       disabled={isRechecking}
-                      className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isRechecking ? 'animate-spin' : ''}`} />
-                      <span>{isRechecking ? 'जांच जारी...' : 'पुनः जांचें (Re-check)'}</span>
+                      <RefreshCw className={`w-3 h-3 ${isRechecking ? 'animate-spin' : ''}`} />
+                      <span>{isRechecking ? 'जांच जारी...' : 'पुनः जांचें'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Primary Action 2: Quick Direct Resident Login without waiting */}
-                <div className="p-3 sm:p-4 bg-blue-50/80 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800 space-y-2">
-                  <div className="font-extrabold text-xs sm:text-sm text-blue-950 dark:text-blue-100 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
-                    <span>बिना इंतज़ार किए तुरंत पोर्टल खोलें (Quick Resident Access)</span>
+                <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-900/60 space-y-2">
+                  <div className="font-semibold text-xs text-blue-950 dark:text-blue-100 flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                    <span>बिना इंतज़ार किए तुरंत पोर्टल खोलें</span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-blue-900 dark:text-blue-200">
-                    यदि आप अभी तुरंत आवेदन दर्ज करना चाहते हैं, तो बिना रुके अपना Google ईमेल दर्ज करके सीधे 1-क्लिक में प्रवेश करें।
+                  <p className="text-[11px] text-blue-900 dark:text-blue-200">
+                    यदि आप अभी तुरंत आवेदन दर्ज करना चाहते हैं, तो बिना रुके अपना Google ईमेल दर्ज करके सीधे प्रवेश करें।
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowQuickLogin(!showQuickLogin)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <LogIn className="w-3.5 h-3.5" />
-                    <span>{showQuickLogin ? 'त्वरित फॉर्म छुपाएं' : 'त्वरित नागरिक प्रवेश खोलें (Direct Citizen Login)'}</span>
+                    <span>{showQuickLogin ? 'त्वरित फॉर्म छुपाएं' : 'त्वरित नागरिक प्रवेश खोलें'}</span>
                   </button>
 
                   {showQuickLogin && (
-                    <form onSubmit={handleQuickLoginSubmit} className="pt-3 space-y-3 border-t border-blue-200 dark:border-blue-800">
+                    <form onSubmit={handleQuickLoginSubmit} className="pt-2.5 space-y-2.5 border-t border-blue-200 dark:border-blue-800">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
                           आपका Google ईमेल (Gmail Address) *
                         </label>
                         <input
@@ -452,11 +449,11 @@ export const CitizenHome: React.FC = () => {
                           value={quickEmail}
                           onChange={(e) => setQuickEmail(e.target.value)}
                           placeholder="उदा. kaushikparth343@gmail.com"
-                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
                           आपका नाम (वैकल्पिक)
                         </label>
                         <input
@@ -464,45 +461,45 @@ export const CitizenHome: React.FC = () => {
                           value={quickName}
                           onChange={(e) => setQuickName(e.target.value)}
                           placeholder="उदा. पार्थ कौशिक"
-                          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
                       <button
                         type="submit"
-                        className="w-full py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full py-2 bg-blue-800 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <ArrowRight className="w-4 h-4" />
-                        <span>डैशबोर्ड में तुरंत प्रवेश करें (Enter Dashboard)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>डैशबोर्ड में तुरंत प्रवेश करें</span>
                       </button>
                     </form>
                   )}
                 </div>
 
                 {/* Secondary Option: New Supabase Project */}
-                <div className="flex flex-wrap items-center justify-between pt-1 text-[11px] text-amber-900 dark:text-amber-200 gap-2">
-                  <span>यदि आपने नया Supabase प्रोजेक्ट बनाया है:</span>
+                <div className="flex flex-wrap items-center justify-between pt-0.5 text-[11px] text-amber-900 dark:text-amber-200 gap-2">
+                  <span>नया Supabase प्रोजेक्ट बनाया है?</span>
                   <button
                     type="button"
                     onClick={() => setShowProjectSettings(true)}
-                    className="font-bold underline hover:text-amber-700 flex items-center gap-1 cursor-pointer"
+                    className="font-medium underline hover:text-amber-700 flex items-center gap-1 cursor-pointer"
                   >
-                    <Settings className="w-3.5 h-3.5" />
-                    <span>नया URL / Key कॉन्फ़िगर करें</span>
+                    <Settings className="w-3 h-3" />
+                    <span>नया URL / Key सेट करें</span>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Primary 1-Click "Continue with Google" Trigger */}
-            <div className="space-y-3 pt-1">
+            <div className="space-y-2.5 pt-0.5">
               <button
                 type="button"
                 onClick={handleGoogleSignInClick}
                 disabled={authLoading || isSigningIn}
-                className="w-full py-4 px-6 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/90 text-slate-900 dark:text-white font-extrabold rounded-2xl border-2 border-slate-300 dark:border-slate-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3.5 text-base sm:text-lg active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-blue-300 group cursor-pointer"
+                className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-medium rounded-lg border border-slate-300 dark:border-slate-700 transition-colors flex items-center justify-center gap-3 text-sm cursor-pointer shadow-2xs"
               >
                 {/* Official Google Multicolored G Logo */}
-                <svg className="w-6 h-6 flex-shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -527,12 +524,12 @@ export const CitizenHome: React.FC = () => {
                 </span>
               </button>
 
-              <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1 pt-1">
-                <span>फोन/ब्राउज़र का Google खाता चयन इंटरफ़ेस खुलेगा</span>
+              <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-0.5">
+                <span>फोन अथवा ब्राउज़र का Google खाता चयन खुलेगा</span>
                 <button
                   type="button"
                   onClick={() => setIsProjectPaused(true)}
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                  className="text-blue-700 dark:text-blue-400 hover:underline font-medium cursor-pointer"
                 >
                   साइट नहीं खुल रही है?
                 </button>
@@ -540,30 +537,30 @@ export const CitizenHome: React.FC = () => {
             </div>
 
             {/* Permanent session assurance banner */}
-            <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl text-blue-900 dark:text-blue-200 text-xs flex items-start gap-2.5 border border-blue-200 dark:border-blue-800 text-left">
-              <ShieldCheck className="w-5 h-5 text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <span className="leading-relaxed">
-                <strong>अधिकतम समय (स्थायी) लॉगिन:</strong> एक बार खाता चुनने के बाद टोकन आपके फोन में स्थायी रूप से सुरक्षित रहेगा। आपको बार-बार लॉगिन नहीं करना पड़ेगा।
+            <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-lg text-slate-600 dark:text-slate-300 text-xs flex items-start gap-2.5 border border-slate-200 dark:border-slate-800 text-left">
+              <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <span className="leading-relaxed text-[11px]">
+                <strong>स्थायी लॉगिन:</strong> खाता चुनने के उपरांत सत्र आपके डिवाइस में सुरक्षित रहेगा, बार-बार लॉगिन की आवश्यकता नहीं होगी।
               </span>
             </div>
           </div>
 
           {/* Quick Secondary Links for Residents */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {/* Direct Status Tracking by ID (Without Login) */}
             <Link
               to="/track"
-              className="w-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/90 border-2 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white rounded-2xl p-4 flex items-center justify-between shadow-xs transition-all"
+              className="w-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white rounded-xl p-3.5 flex items-center justify-between shadow-2xs transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
-                  <Search className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-blue-700 dark:text-blue-400 flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700">
+                  <Search className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <div className="font-bold text-sm text-slate-900 dark:text-white">
+                  <div className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white">
                     केवल रिपोर्ट आईडी से स्थिति जांचें (Track by Report ID)
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     यदि आपके पास पहले से JS-2027 रसीद संख्या है
                   </div>
                 </div>
@@ -574,20 +571,20 @@ export const CitizenHome: React.FC = () => {
             {/* Emergency Helplines */}
             <Link
               to="/directory"
-              className="w-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100/70 dark:hover:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 rounded-2xl p-3.5 flex items-center justify-between text-xs sm:text-sm font-bold transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl p-3 flex items-center justify-between text-xs font-medium transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <PhoneCall className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0" />
                 <span>24x7 जिला आपदा नियंत्रण कक्ष एवं चारा राहत केंद्र सूची</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             </Link>
 
             {/* Disclaimer */}
-            <div className="p-3.5 bg-slate-100 dark:bg-slate-900/90 rounded-2xl text-slate-700 dark:text-slate-200 text-xs leading-relaxed flex items-start gap-2.5 border border-slate-200 dark:border-slate-700 shadow-xs">
+            <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl text-slate-600 dark:text-slate-400 text-xs leading-relaxed flex items-start gap-2.5 border border-slate-200 dark:border-slate-800">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <span>
-                <strong className="text-slate-900 dark:text-amber-300 font-extrabold">महत्वपूर्ण सूचना: </strong>
+              <span className="text-[11px]">
+                <strong className="text-slate-800 dark:text-slate-200 font-semibold">आधिकारिक सूचना: </strong>
                 यह पोर्टल बाढ़ प्रभावित परिवारों के नुकसान को सरकारी रिकॉर्ड में दर्ज कर भौतिक सत्यापन व विभागीय समन्वय हेतु है।
               </span>
             </div>
@@ -597,33 +594,33 @@ export const CitizenHome: React.FC = () => {
         /* ======================================================== */
         /* 2. AUTHENTICATED CITIZEN DASHBOARD: Requests & Status    */
         /* ======================================================== */
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-5">
           {/* Welcome Profile Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border-2 border-slate-200 dark:border-slate-700 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {citizen?.avatarUrl ? (
                 <img
                   src={citizen.avatarUrl}
                   alt={citizen.fullName}
                   referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-blue-500 shadow-xs"
+                  className="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-teal-600 text-white font-extrabold text-lg flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-lg bg-blue-800 text-white font-semibold text-base flex items-center justify-center">
                   {(citizen?.fullName || 'N')[0]}
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
+                  <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                     नमस्ते, {citizen?.fullName}
                   </h1>
-                  <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
+                  <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                     सत्यापित नागरिक
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  {citizen?.email} {citizen?.phone ? `• फोन: ${citizen.phone}` : ''}
+                  {citizen?.email} {citizen?.phone ? `• ${citizen.phone}` : ''}
                 </p>
               </div>
             </div>
@@ -633,7 +630,7 @@ export const CitizenHome: React.FC = () => {
               <button
                 type="button"
                 onClick={logoutCitizen}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/40 text-slate-700 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-300 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
                 title="खाता बदलें / लॉगआउट"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -643,23 +640,23 @@ export const CitizenHome: React.FC = () => {
           </div>
 
           {/* Multi-Device Cloud Sync Active Indicator & Instant Re-sync */}
-          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-blue-950/40 border-2 border-emerald-200/80 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0 shadow-2xs">
-                <Cloud className="w-5 h-5 animate-pulse" />
+          <div className="bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
+                <Cloud className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm">
-                    मल्टी-डिवाइस क्लाउड सिंक सक्रिय (All Devices Synced)
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
+                    क्लाउड सिंक सक्रिय (Cross-Device Sync)
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    लाइव सिंक
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                    सक्रिय
                   </span>
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs">
-                  आपका खाता (<span className="font-mono font-semibold text-emerald-800 dark:text-emerald-300">{citizen?.email}</span>) आपके फोन, लैपटॉप व अन्य सभी डिवाइसों में स्वतः सिंक है। किसी भी डिवाइस से आवेदन दर्ज करें, सभी जगह दिखाई देगा।
+                <p className="text-slate-500 dark:text-slate-400 text-[11px]">
+                  खाता <span className="font-mono text-slate-700 dark:text-slate-300">{citizen?.email}</span> सभी डिवाइसों में सिंक है।
                 </p>
               </div>
             </div>
@@ -668,44 +665,44 @@ export const CitizenHome: React.FC = () => {
               type="button"
               onClick={() => loadCitizenReports()}
               disabled={isLoadingReports}
-              className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-200 font-bold rounded-xl border border-emerald-300 dark:border-emerald-700 shadow-2xs transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer ml-auto sm:ml-0"
+              className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-lg border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5 text-xs disabled:opacity-50 cursor-pointer ml-auto sm:ml-0"
               title="क्लाउड से डेटा पुनः सिंक करें"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingReports ? 'animate-spin text-emerald-600' : ''}`} />
-              <span>{isLoadingReports ? 'सिंक जारी है...' : 'डेटा सिंक करें (Sync Now)'}</span>
+              <RefreshCw className={`w-3 h-3 ${isLoadingReports ? 'animate-spin' : ''}`} />
+              <span>{isLoadingReports ? 'सिंक जारी...' : 'सिंक करें'}</span>
             </button>
           </div>
 
           {/* Metric Bar: Requests Statistics */}
           <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-xs text-center">
-              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-left">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 कुल अनुरोध
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
                 {reportsSummary.total}
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">दर्ज राहत आवेदन</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">दर्ज राहत आवेदन</div>
             </div>
 
-            <div className="p-3.5 sm:p-4 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 shadow-xs text-center">
-              <div className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-left">
+              <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
                 सत्यापित / स्वीकृत
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
+              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
                 {reportsSummary.verified}
               </div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">निरीक्षण पूर्ण</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">निरीक्षण पूर्ण</div>
             </div>
 
-            <div className="p-3.5 sm:p-4 bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-xs text-center">
-              <div className="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">
+            <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-left">
+              <div className="text-xs font-medium text-blue-700 dark:text-blue-400">
                 प्रक्रियाधीन
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-400 mt-1">
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
                 {reportsSummary.inProgress + reportsSummary.submitted}
               </div>
-              <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">जांच व समीक्षा जारी</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">जांच व समीक्षा जारी</div>
             </div>
           </div>
 
@@ -713,88 +710,87 @@ export const CitizenHome: React.FC = () => {
           <div>
             <Link
               to="/report"
-              className="w-full group bg-gradient-to-r from-blue-600 via-blue-700 to-teal-700 hover:from-blue-700 hover:to-teal-800 text-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-blue-200/50 dark:shadow-none flex items-center justify-between transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-blue-300"
+              className="w-full bg-blue-800 hover:bg-blue-900 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-xl p-4 sm:p-5 shadow-xs flex items-center justify-between transition-colors border border-blue-900 dark:border-blue-600"
             >
-              <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-white text-blue-700 flex items-center justify-center shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
-                  <Mic className="w-7 h-7" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-900/60 dark:bg-blue-800 text-white flex items-center justify-center flex-shrink-0">
+                  <Mic className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-lg sm:text-xl font-extrabold tracking-tight">
+                  <div className="text-base sm:text-lg font-semibold tracking-tight">
                     नया नुकसान / राहत अनुरोध दर्ज करें
                   </div>
-                  <div className="text-blue-100 text-xs sm:text-sm mt-0.5 font-medium">
+                  <div className="text-blue-100 text-xs mt-0.5 font-normal">
                     बोलकर बताएं—अपनी फसल, पशुधन, दुकान या मजदूरी क्षति
                   </div>
                 </div>
               </div>
-              <div className="px-4 py-2 rounded-xl bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 flex-shrink-0">
+              <div className="px-3 py-1.5 rounded-lg bg-white/15 text-white font-medium text-xs flex items-center gap-1.5 flex-shrink-0">
                 <span>+ नया आवेदन</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </Link>
           </div>
 
           {/* Citizen Requests List & Where Forwarded */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                <FileText className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+                <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
                   आपके द्वारा प्रस्तुत अनुरोध एवं अग्रसारण स्थिति
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={loadCitizenReports}
-                className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 title="अद्यतन करें (Refresh)"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
-
             {isLoadingReports ? (
-              <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 text-slate-500 text-sm">
+              <div className="text-center py-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs font-medium">
                 अनुरोध सूची लोड हो रही है...
               </div>
             ) : myReports.length === 0 ? (
               /* Zero State: Shown when newly logged in with zero reports */
-              <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
-                  <FileText className="w-6 h-6" />
+              <div className="text-center py-10 px-4 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center mx-auto border border-slate-200 dark:border-slate-700">
+                  <FileText className="w-5 h-5" />
                 </div>
-                <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
                   आपने अभी तक कोई नुकसान दर्ज नहीं किया है
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  यदि बाढ़ के कारण आपकी फसल, पशुधन, दुकान या आजीविका प्रभावित हुई है, तो कृपया ऊपर दिए गए बटन को दबाकर पहली रिपोर्ट दर्ज करें।
+                  यदि बाढ़ के कारण आपकी फसल, पशुधन, दुकान या आजीविका प्रभावित हुई है, तो कृपया नया आवेदन दर्ज करें।
                 </p>
                 <Link
                   to="/report"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-700 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-800 text-white font-medium rounded-lg text-xs hover:bg-blue-700 transition-colors shadow-2xs"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>अभी नया अनुरोध दर्ज करें</span>
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>नया अनुरोध दर्ज करें</span>
                 </Link>
               </div>
             ) : (
               /* Request Cards: ONLY shows reports truly reported by this citizen */
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {myReports.map((report) => (
                   <div
                     key={report.id || report.reportNumber}
-                    className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-700 p-5 sm:p-6 shadow-sm space-y-4 transition-all hover:border-blue-400 dark:hover:border-blue-500"
+                    className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-3.5 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
                   >
                     {/* Header Row: ID, Date & Badge */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-extrabold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-xs px-2.5 py-1 rounded-lg">
+                          <span className="font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-xs px-2 py-0.5 rounded">
                             {report.reportNumber}
                           </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
+                          <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-normal">
+                            <Clock className="w-3 h-3" />
                             {new Date(report.submittedAt || Date.now()).toLocaleDateString('hi-IN', {
                               day: 'numeric',
                               month: 'short',
@@ -802,8 +798,8 @@ export const CitizenHome: React.FC = () => {
                             })}
                           </span>
                         </div>
-                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="text-xs text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-1 font-medium">
+                          <MapPin className="w-3 h-3 text-slate-400" />
                           <span>{report.village}, {report.block}, {report.district}</span>
                         </div>
                       </div>
@@ -812,37 +808,37 @@ export const CitizenHome: React.FC = () => {
                     </div>
 
                     {/* Forwarding Route Info (कहाँ अग्रसारित हुआ है) */}
-                    <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/50 rounded-2xl border border-blue-200 dark:border-blue-800 space-y-2">
-                      <div className="text-[11px] font-black text-blue-950 dark:text-blue-200 uppercase tracking-wide flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-blue-700 dark:text-blue-400" />
-                        <span>प्रशासनिक अग्रसारण विवरण (Forwarded Administrative Unit):</span>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1.5">
+                      <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
+                        <span>प्रशासनिक अग्रसारण विवरण:</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <div>
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">अग्रसारित कार्यालय: </span>
-                          <strong className="text-slate-900 dark:text-slate-100 font-bold block mt-0.5">
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">अग्रसारित कार्यालय: </span>
+                          <strong className="text-slate-900 dark:text-slate-100 font-medium block mt-0.5">
                             {report.forwardedTo?.officeName || 'प्रखंड विकास पदाधिकारी (BDO) कार्यालय'}
                           </strong>
                         </div>
 
                         <div>
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">संबद्ध विभाग: </span>
-                          <strong className="text-slate-900 dark:text-slate-100 font-bold block mt-0.5">
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">संबद्ध विभाग: </span>
+                          <strong className="text-slate-900 dark:text-slate-100 font-medium block mt-0.5">
                             {report.forwardedTo?.department || 'आपदा राहत एवं आजीविका कोषांग'}
                           </strong>
                         </div>
 
                         <div>
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">संबद्ध राहत योजना: </span>
-                          <strong className="text-slate-900 dark:text-slate-100 font-bold block mt-0.5">
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">संबद्ध राहत योजना: </span>
+                          <strong className="text-slate-900 dark:text-slate-100 font-medium block mt-0.5">
                             {report.forwardedTo?.scheme || 'बाढ़ आजीविका सुरक्षा सहायता'}
                           </strong>
                         </div>
 
                         <div>
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">प्राधिकृत अधिकारी / दल: </span>
-                          <strong className="text-slate-900 dark:text-slate-100 font-bold block mt-0.5">
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">प्राधिकृत अधिकारी / दल: </span>
+                          <strong className="text-slate-900 dark:text-slate-100 font-medium block mt-0.5">
                             {report.forwardedTo?.assignedOfficer || 'ग्राउंड सत्यापन टास्क फोर्स'}
                           </strong>
                         </div>
@@ -850,12 +846,12 @@ export const CitizenHome: React.FC = () => {
                     </div>
 
                     {/* Latest Status Update in Simple Language */}
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-start justify-between gap-3">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                          ताज़ा अद्यतन (Current Status Update):
+                        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                          अद्यतन स्थिति विवरण:
                         </div>
-                        <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 mt-0.5">
                           {report.statusMessage?.[language] || report.statusMessage?.hi || 'सत्यापन प्रक्रिया जारी है।'}
                         </p>
                         {report.verificationNotes && (
@@ -873,23 +869,23 @@ export const CitizenHome: React.FC = () => {
                     </div>
 
                     {/* Loss Description & Badges */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <div className="flex flex-wrap gap-1.5">
                         {(report.livelihoodCategories || []).map((cat: string) => (
                           <span
                             key={cat}
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                           >
                             {cat === 'CROP'
-                              ? '🌾 फसल क्षति'
+                              ? 'फसल क्षति'
                               : cat === 'LIVESTOCK'
-                              ? '🐄 पशुधन / चारा संकट'
+                              ? 'पशुधन / चारा संकट'
                               : cat === 'SHOP_BUSINESS'
-                              ? '🏪 दुकान नुकसानी'
+                              ? 'दुकान नुकसानी'
                               : cat === 'FISHERIES'
-                              ? '🐟 मत्स्य पालन'
+                              ? 'मत्स्य पालन'
                               : cat === 'WAGE_LABOR'
-                              ? '🔨 दैनिक मजदूरी'
+                              ? 'दैनिक मजदूरी'
                               : cat}
                           </span>
                         ))}
@@ -902,12 +898,12 @@ export const CitizenHome: React.FC = () => {
 
                     {/* Recorded Audio Player if present */}
                     {report.audioSimulationUrl && (
-                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl space-y-1 text-left">
-                        <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5 text-left">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
                           आपकी दर्ज की गई मूल आवाज रिकॉर्डिंग:
                         </span>
-                        <audio controls src={report.audioSimulationUrl} className="w-full mt-1 rounded-lg" />
+                        <audio controls src={report.audioSimulationUrl} className="w-full mt-1 rounded" />
                       </div>
                     )}
 
@@ -915,13 +911,13 @@ export const CitizenHome: React.FC = () => {
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                       <Link
                         to={`/track?reportNumber=${report.reportNumber}`}
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:underline flex items-center gap-1"
+                        className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
                       >
                         <span>विस्तृत प्रगति टाइमलाइन एवं इतिहास देखें</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
 
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
                         अग्रसारण चरण: {report.forwardedTo?.currentStage || 'जांच सक्रिय'}
                       </span>
                     </div>
@@ -935,19 +931,19 @@ export const CitizenHome: React.FC = () => {
           <div className="space-y-3 pt-2">
             <Link
               to="/directory"
-              className="w-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100/70 dark:hover:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 rounded-2xl p-3.5 flex items-center justify-between text-xs sm:text-sm font-bold transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-lg p-3.5 flex items-center justify-between text-xs sm:text-sm font-medium transition-colors"
             >
               <div className="flex items-center gap-2.5">
-                <PhoneCall className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0" />
+                <PhoneCall className="w-4 h-4 text-blue-700 dark:text-blue-400 flex-shrink-0" />
                 <span>24x7 जिला आपदा नियंत्रण कक्ष एवं चारा राहत केंद्र सूची</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
             </Link>
 
-            <div className="p-3.5 bg-slate-100 dark:bg-slate-900/90 rounded-2xl text-slate-700 dark:text-slate-200 text-xs leading-relaxed flex items-start gap-2.5 border border-slate-200 dark:border-slate-700 shadow-xs">
-              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-lg text-slate-700 dark:text-slate-300 text-xs leading-relaxed flex items-start gap-2.5 border border-slate-200 dark:border-slate-800">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
               <span>
-                <strong className="text-slate-900 dark:text-amber-300 font-extrabold">महत्वपूर्ण सूचना: </strong>
+                <strong className="text-slate-900 dark:text-white font-semibold">महत्वपूर्ण सूचना: </strong>
                 यह पोर्टल बाढ़ प्रभावित परिवारों के आजीविका नुकसान को सरकारी रिकॉर्ड में दर्ज कर भौतिक सत्यापन व पुनर्प्राप्ति समन्वय हेतु है।
               </span>
             </div>

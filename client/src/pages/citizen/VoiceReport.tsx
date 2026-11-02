@@ -10,7 +10,7 @@ import {
   HelpCircle,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
+  Tag,
   ShieldAlert,
   Volume2,
 } from 'lucide-react';
@@ -219,18 +219,18 @@ export const VoiceReport: React.FC = () => {
     <div className="max-w-2xl mx-auto py-6 px-4">
       {/* Progress Stepper */}
       <div className="mb-6">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
-          <span className={step >= 1 ? 'text-blue-600 font-bold' : ''}>1. आवाज</span>
+        <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+          <span className={step >= 1 ? 'text-blue-800 dark:text-blue-400 font-semibold' : ''}>1. आवाज</span>
           <span>•</span>
-          <span className={step >= 2 ? 'text-blue-600 font-bold' : ''}>2. पुष्टि</span>
+          <span className={step >= 2 ? 'text-blue-800 dark:text-blue-400 font-semibold' : ''}>2. पुष्टि</span>
           <span>•</span>
-          <span className={step >= 3 ? 'text-blue-600 font-bold' : ''}>3. स्थान व संपर्क</span>
+          <span className={step >= 3 ? 'text-blue-800 dark:text-blue-400 font-semibold' : ''}>3. स्थान व संपर्क</span>
           <span>•</span>
-          <span className={step >= 4 ? 'text-blue-600 font-bold' : ''}>4. समीक्षा व जमा</span>
+          <span className={step >= 4 ? 'text-blue-800 dark:text-blue-400 font-semibold' : ''}>4. समीक्षा व जमा</span>
         </div>
-        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
           <div
-            className="bg-blue-600 h-full transition-all duration-300"
+            className="bg-blue-800 dark:bg-blue-600 h-full transition-all duration-200"
             style={{ width: `${(step / 4) * 100}%` }}
           ></div>
         </div>
@@ -238,7 +238,7 @@ export const VoiceReport: React.FC = () => {
 
       {/* STEP 1: Voice Recording */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 dark:border-slate-800">
           <VoiceRecorder
             onTranscriptReady={handleTranscriptReady}
             initialTranscript={confirmedTranscript}
@@ -248,107 +248,107 @@ export const VoiceReport: React.FC = () => {
 
       {/* STEP 2: Confirm Transcript */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 dark:border-slate-800 space-y-5">
           <div className="text-center space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
               {t('confirmTranscriptTitle')}
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm">
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">
               {t('confirmTranscriptSubtitle')}
             </p>
           </div>
 
           {/* Transcript Box */}
-          <div className="p-4 sm:p-6 bg-blue-50/60 rounded-xl border border-blue-200">
+          <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800">
             {isEditingTranscript ? (
               <textarea
                 rows={4}
                 value={confirmedTranscript}
                 onChange={(e) => setConfirmedTranscript(e.target.value)}
-                className="w-full p-3 bg-white border border-blue-400 rounded-lg text-slate-900 text-base focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-800 focus:outline-none"
               />
             ) : (
-              <p className="text-base sm:text-lg font-medium text-slate-800 leading-relaxed font-sans">
+              <p className="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-200 leading-relaxed font-sans">
                 "{confirmedTranscript}"
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-200/60">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-750">
               <AudioPlayerButton
                 textToSpeak={confirmedTranscript}
-                label="विवरण को आवाज में सुनें (Listen)"
+                label="विवरण को आवाज में सुनें"
               />
 
               <button
                 type="button"
                 onClick={() => setIsEditingTranscript(!isEditingTranscript)}
-                className="text-xs text-blue-700 font-medium hover:underline flex items-center gap-1"
+                className="text-xs text-blue-700 dark:text-blue-400 font-medium hover:underline flex items-center gap-1"
               >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>{isEditingTranscript ? 'संपादन समाप्त करें (Done)' : t('btnEditText')}</span>
+                <Edit2 className="w-3 h-3" />
+                <span>{isEditingTranscript ? 'संपादन समाप्त करें' : t('btnEditText')}</span>
               </button>
             </div>
           </div>
 
           {/* Direct Recorded Audio Player */}
           {audioUrl && (
-            <div className="p-4 bg-emerald-50 border-2 border-emerald-400 rounded-2xl space-y-2 shadow-xs text-left">
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5 text-left">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                  आपकी मूल आवाज रिकॉर्डिंग (Your Recorded Voice Note):
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  आपकी मूल आवाज रिकॉर्डिंग:
                 </span>
-                <span className="text-[11px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">
+                <span className="text-[11px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium px-2 py-0.5 rounded">
                   ऑडियो तैयार
                 </span>
               </div>
-              <audio controls src={audioUrl} className="w-full mt-1 rounded-lg" />
-              <p className="text-[11px] text-emerald-800 italic">
-                * यह मूल आवाज रिकॉर्डिंग सीधे प्रशासनिक अधिकारियों (BDO / DM) को सुनाई देगी।
+              <audio controls src={audioUrl} className="w-full mt-1 rounded" />
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                * यह मूल आवाज रिकॉर्डिंग सीधे प्रशासनिक अधिकारियों को सुनाई देगी।
               </p>
             </div>
           )}
 
           {/* AI Category Extraction Notice */}
           {aiSuggestions && (
-            <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-xl text-teal-900 text-xs space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold">
-                <Sparkles className="w-4 h-4 text-teal-600" />
-                <span>एआई सुझावित आजीविका श्रेणियां (AI-extracted categories):</span>
+            <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                <Tag className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
+                <span>सुझावित आजीविका श्रेणियां:</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {aiSuggestions.detectedAssets.map((asset, i) => (
                   <span
                     key={i}
-                    className="px-2 py-0.5 bg-teal-100/80 text-teal-800 font-semibold rounded-md text-[11px]"
+                    className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded text-[11px] border border-slate-200 dark:border-slate-700"
                   >
                     ✓ {asset}
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-teal-700 italic">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
                 * {aiSuggestions.disclaimer}
               </p>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2.5 pt-1">
             <button
               type="button"
               onClick={() => setStep(3)}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-base shadow-md transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg text-xs sm:text-sm shadow-2xs transition-colors flex items-center justify-center gap-2"
             >
-              <CheckCircle2 className="w-5 h-5 text-blue-200" />
+              <CheckCircle2 className="w-4 h-4 text-blue-200" />
               <span>{t('btnConfirm')}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-xs transition-colors flex items-center justify-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
               <span>{t('btnSpeakAgain')}</span>
             </button>
           </div>
@@ -357,20 +357,20 @@ export const VoiceReport: React.FC = () => {
 
       {/* STEP 3: Location, Contact & Details */}
       {step === 3 && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-5">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{t('detailsTitle')}</h2>
-              <p className="text-slate-600 text-xs sm:text-sm mt-0.5">{t('detailsSubtitle')}</p>
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">{t('detailsTitle')}</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">{t('detailsSubtitle')}</p>
             </div>
             <button
               type="button"
               onClick={handleAutoFillDemoDetails}
-              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+              className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium flex items-center gap-1 transition-colors"
               title="परीक्षण हेतु स्वचालित विवरण भरें"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>नमूना विवरण ऑटो-भरें (Auto-Fill)</span>
+              <Tag className="w-3 h-3" />
+              <span>नमूना विवरण भरें (Auto-Fill)</span>
             </button>
           </div>
 
@@ -611,13 +611,13 @@ export const VoiceReport: React.FC = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="w-1/3 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1"
+              className="w-1/3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-xs transition-colors flex items-center justify-center gap-1"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span>पीछे</span>
             </button>
 
@@ -631,10 +631,10 @@ export const VoiceReport: React.FC = () => {
                 setErrorMessage(null);
                 setStep(4);
               }}
-              className="w-2/3 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-1.5"
+              className="w-2/3 py-2.5 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg text-xs sm:text-sm shadow-2xs transition-colors flex items-center justify-center gap-1.5"
             >
-              <span>समीक्षा करें (Review)</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>समीक्षा करें</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -642,44 +642,44 @@ export const VoiceReport: React.FC = () => {
 
       {/* STEP 4: Review and Submit */}
       {step === 4 && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 dark:border-slate-800 space-y-5">
           <div className="text-center space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
               अपनी रिपोर्ट की समीक्षा करें
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm">
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">
               कृपया सभी जानकारी जांच लें और जमा करने के लिए बटन दबाएं
             </p>
           </div>
 
           {/* Summary Card */}
-          <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200 space-y-3 text-xs sm:text-sm">
-            <div className="pb-3 border-b border-slate-200">
-              <div className="text-slate-500 text-xs font-semibold">नुकसान का विवरण:</div>
-              <p className="text-slate-900 font-medium mt-1 leading-relaxed">
+          <div className="bg-slate-50 dark:bg-slate-850 rounded-lg p-4 border border-slate-200 dark:border-slate-800 space-y-3 text-xs sm:text-sm">
+            <div className="pb-3 border-b border-slate-200 dark:border-slate-750">
+              <div className="text-slate-500 dark:text-slate-400 text-xs font-medium">नुकसान का विवरण:</div>
+              <p className="text-slate-900 dark:text-slate-100 font-medium mt-1 leading-relaxed">
                 "{confirmedTranscript}"
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200">
+            <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-750">
               <div>
-                <span className="text-slate-500 text-xs">नागरिक:</span>
-                <div className="font-bold text-slate-900">{citizenName}</div>
-                <div className="text-slate-600 text-xs font-mono">{citizenPhone}</div>
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-normal">नागरिक:</span>
+                <div className="font-medium text-slate-900 dark:text-slate-100">{citizenName}</div>
+                <div className="text-slate-500 dark:text-slate-400 text-xs font-mono">{citizenPhone}</div>
               </div>
               <div>
-                <span className="text-slate-500 text-xs">स्थान:</span>
-                <div className="font-bold text-slate-900">{village}, {panchayat}</div>
-                <div className="text-slate-600 text-xs">{block}, {district}</div>
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-normal">स्थान:</span>
+                <div className="font-medium text-slate-900 dark:text-slate-100">{village}, {panchayat}</div>
+                <div className="text-slate-500 dark:text-slate-400 text-xs">{block}, {district}</div>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="text-slate-500 text-xs mr-1 self-center">श्रेणियां:</span>
+              <span className="text-slate-500 dark:text-slate-400 text-xs mr-1 self-center">श्रेणियां:</span>
               {selectedCategories.map((c) => (
                 <span
                   key={c}
-                  className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold"
+                  className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800"
                 >
                   {c}
                 </span>
@@ -687,22 +687,22 @@ export const VoiceReport: React.FC = () => {
             </div>
 
             {estimatedLossAmount && (
-              <div className="text-xs text-slate-700 pt-1">
+              <div className="text-xs text-slate-700 dark:text-slate-300 pt-1">
                 स्व-रिपोर्टेड अनुमान: <strong>₹{parseFloat(estimatedLossAmount).toLocaleString('en-IN')}</strong> (ऐच्छिक)
               </div>
             )}
           </div>
 
           {/* Final Honest Disclaimer */}
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
-            <ShieldAlert className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
-            <span>
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">
               यह रिपोर्ट प्रशासन के पास सत्यापन हेतु जाएगी। भौतिक जांच और पात्रता सत्यापन के पश्चात ही सहायता सुनिश्चित की जाएगी।
             </span>
           </div>
 
           {errorMessage && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-xs">
+            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-xs">
               {errorMessage}
             </div>
           )}
@@ -713,7 +713,7 @@ export const VoiceReport: React.FC = () => {
               type="button"
               disabled={isSubmitting}
               onClick={() => setStep(3)}
-              className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs"
+              className="w-1/3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-xs transition-colors"
             >
               सुधारें (Edit)
             </button>
@@ -722,13 +722,13 @@ export const VoiceReport: React.FC = () => {
               type="button"
               disabled={isSubmitting}
               onClick={handleSubmit}
-              className="w-2/3 py-3.5 bg-green-600 hover:bg-green-700 text-white font-extrabold rounded-xl text-base shadow-lg shadow-green-200 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-2/3 py-2.5 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg text-sm shadow-2xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span>{t('submitting')}</span>
               ) : (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-200" />
                   <span>{t('btnSubmitReport')}</span>
                 </>
               )}

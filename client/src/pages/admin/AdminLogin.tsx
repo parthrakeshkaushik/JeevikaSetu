@@ -148,41 +148,41 @@ export const AdminLogin: React.FC = () => {
   if (isCitizenAuthenticated && citizen) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center py-10 px-4">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-amber-200 dark:border-amber-800 shadow-xl space-y-5 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
-            <Shield className="w-7 h-7" />
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4 text-center">
+          <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 text-amber-600 flex items-center justify-center mx-auto border border-slate-200 dark:border-slate-700">
+            <Shield className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 uppercase">
-              सक्रिय नागरिक सत्र (Active Resident Session)
+            <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
+              सक्रिय नागरिक सत्र
             </span>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white pt-2">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white pt-2">
               आप नागरिक के रूप में लॉगिन हैं
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {citizen.fullName} ({citizen.email})
             </p>
-            <p className="text-xs text-slate-600 dark:text-slate-300 pt-2 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 pt-1 leading-relaxed">
               एक समय में केवल एक मोड में लॉगिन रह सकते हैं। प्रशासनिक लॉगिन करने के लिए पहले नागरिक सत्र से लॉगआउट करें।
             </p>
           </div>
 
-          <div className="flex flex-col gap-2.5 pt-2">
+          <div className="flex flex-col gap-2 pt-2">
             <Link
               to="/"
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 px-4 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg shadow-2xs transition-colors text-xs flex items-center justify-center gap-1.5"
             >
-              <span>नागरिक पोर्टल पर जाएं (Go to Resident Portal)</span>
+              <span>नागरिक पोर्टल पर जाएं</span>
             </Link>
             <button
               type="button"
               onClick={async () => {
                 await logoutCitizen();
               }}
-              className="w-full py-3 px-4 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 font-semibold rounded-xl border border-slate-200 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/50 text-slate-700 dark:text-slate-300 hover:text-red-700 dark:hover:text-red-300 font-medium rounded-lg border border-slate-200 dark:border-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>नागरिक सत्र से लॉगआउट करें (Logout & Switch)</span>
+              <span>नागरिक सत्र से लॉगआउट करें</span>
             </button>
           </div>
         </div>
@@ -192,66 +192,66 @@ export const AdminLogin: React.FC = () => {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-10 px-4">
-      <div className="w-full max-w-lg space-y-5">
+      <div className="w-full max-w-lg space-y-4">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-blue-900 text-white flex items-center justify-center mx-auto shadow-lg border border-slate-700">
-            <Shield className="w-6 h-6 text-amber-400" />
+          <div className="w-11 h-11 rounded-lg bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center mx-auto border border-slate-700">
+            <Shield className="w-5 h-5 text-blue-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white">
             बाढ़ राहत प्रशासनिक लॉगिन
           </h1>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
             JeevikaSetu Administrative & Field Coordination Portal (Bihar Flood Response)
           </p>
         </div>
 
         {/* Instant Access Banner for Citizen Requests */}
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 p-4 rounded-2xl text-white shadow-lg space-y-2">
+        <div className="bg-slate-900 dark:bg-slate-850 p-4 rounded-xl text-white border border-slate-800 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-amber-400 text-slate-950 rounded-lg text-xs font-black shadow-xs">
-                ⚡ त्वरित समीक्षा
+              <span className="px-2 py-0.5 bg-blue-900 text-blue-200 rounded text-xs font-medium border border-blue-700">
+                त्वरित समीक्षा
               </span>
-              <span className="text-xs font-bold tracking-wide">वेबसाइट से प्राप्त सभी नए आवेदन</span>
+              <span className="text-xs font-medium tracking-wide">वेबसाइट से प्राप्त सभी नए आवेदन</span>
             </div>
           </div>
-          <p className="text-[11px] text-blue-100 leading-relaxed">
+          <p className="text-[11px] text-slate-300 leading-relaxed">
             नागरिकों द्वारा वेबसाइट पर दर्ज किए गए सभी मामलों को बिना किसी विभागीय रुकावट के सीधे देखने के लिए राज्य आपदा नियंत्रण कक्ष से प्रवेश करें।
           </p>
           <button
             type="button"
             onClick={handleInstantViewAllRequests}
             disabled={isLoading}
-            className="w-full mt-2 py-2.5 px-4 bg-white hover:bg-blue-50 text-blue-900 font-extrabold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2 active:scale-95"
+            className="w-full mt-1 py-2 px-3 bg-blue-800 hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs"
           >
-            <span>सभी जिलों के प्राप्त आवेदन तुरंत खोलें (View All Incoming Citizen Requests)</span>
-            <ArrowRight className="w-4 h-4 text-blue-700" />
+            <span>सभी जिलों के प्राप्त आवेदन तुरंत खोलें</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Primary Selection Form (District -> Flood Relief Official -> Login) */}
-        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xl space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-bold text-slate-800 uppercase tracking-wide">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200">
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-blue-600" />
-              <span>कार्यक्षेत्र एवं पदनाम चयन (Select Official)</span>
+              <Building2 className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+              <span>कार्यक्षेत्र एवं पदनाम चयन</span>
             </div>
-            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-              विभागीय बाधा रहित (Zero Silos)
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded font-medium border border-emerald-200 dark:border-emerald-800">
+              विभागीय बाधा रहित
             </span>
           </div>
 
-          <form onSubmit={handleDirectLogin} className="space-y-4 text-left">
+          <form onSubmit={handleDirectLogin} className="space-y-3.5 text-left">
             {/* Step 1: District / Jurisdiction Level */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                १. कार्यक्षेत्र / जिला चुनें (1. Select District / Level):
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                १. कार्यक्षेत्र / जिला चुनें:
               </label>
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="w-full p-3 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm font-medium bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-800 focus:outline-none"
               >
                 {DISTRICT_OPTIONS.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -261,16 +261,16 @@ export const AdminLogin: React.FC = () => {
               </select>
             </div>
 
-            {/* Step 2: Flood Relief Official & Post (Direct without department silos) */}
+            {/* Step 2: Flood Relief Official & Post */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                २. बाढ़ राहत प्राधिकारी / पदनाम चुनें (2. Select Relief Officer & Post):
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                २. बाढ़ राहत प्राधिकारी / पदनाम चुनें:
               </label>
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 disabled={districtUsers.length === 0}
-                className="w-full p-3 border-2 border-blue-400 bg-blue-50/50 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-800 focus:outline-none"
               >
                 {districtUsers.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -282,24 +282,24 @@ export const AdminLogin: React.FC = () => {
 
             {/* Active Officer Preview Pill */}
             {activeOfficer && (
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="font-semibold text-slate-700">चयनित अधिकारी:</span>
-                  <span className="font-mono text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-800">
+              <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-750 text-xs space-y-1">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">चयनित अधिकारी:</span>
+                  <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
                     {activeOfficer.email}
                   </span>
                 </div>
-                <div className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                <div className="font-medium text-slate-900 dark:text-slate-100 text-sm flex items-center justify-between">
                   <span>{activeOfficer.fullName}</span>
-                  <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded font-mono">
                     {activeOfficer.role}
                   </span>
                 </div>
-                <div className="text-[11px] text-blue-700 font-medium flex items-center justify-between">
+                <div className="text-[11px] text-blue-700 dark:text-blue-400 font-normal flex items-center justify-between">
                   <span>
-                    अधिकार क्षेत्र: <strong>{activeOfficer.jurisdictionName || 'संपूर्ण बिहार'}</strong>
+                    अधिकार क्षेत्र: {activeOfficer.jurisdictionName || 'संपूर्ण बिहार'}
                   </span>
-                  <span className="text-slate-500">
+                  <span className="text-slate-400 text-[10px]">
                     {activeOfficer.jurisdictionType || 'STATE'}
                   </span>
                 </div>
@@ -307,7 +307,7 @@ export const AdminLogin: React.FC = () => {
             )}
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-center gap-2">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
                 <span>{error}</span>
               </div>
@@ -317,16 +317,16 @@ export const AdminLogin: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading || !activeOfficer}
-              className="w-full py-3.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold rounded-xl text-sm shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 disabled:bg-slate-300"
+              className="w-full py-2.5 px-4 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg text-xs sm:text-sm shadow-2xs transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300 dark:disabled:bg-slate-800"
             >
               <span>
                 {isLoading
                   ? 'सत्यापित किया जा रहा है...'
                   : activeOfficer
-                  ? `🔒 ${activeOfficer.role} के रूप में पोर्टल में प्रवेश करें`
+                  ? `${activeOfficer.role} के रूप में पोर्टल में प्रवेश करें`
                   : 'प्रशासनिक लॉगिन करें'}
               </span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
 
